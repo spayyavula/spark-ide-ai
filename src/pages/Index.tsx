@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Brain, Code, Zap, GitBranch, Star, Users, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,11 +40,11 @@ const Index = () => {
             </h1>
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm">
-              Documentation
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/documentation">Documentation</Link>
             </Button>
-            <Button variant="ghost" size="sm">
-              Pricing
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/pricing">Pricing</Link>
             </Button>
           </div>
         </div>
