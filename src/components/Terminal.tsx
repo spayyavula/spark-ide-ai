@@ -1,303 +1,383 @@
 import { useState, useRef, useEffect } from "react";
-import { Terminal as TerminalIcon, Play, Trash2 } from "lucide-react";
+import { Terminal as TerminalIcon, Plus, X, Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { Terminal as XTerm } from '@xterm/xterm';
+import { FitAddon } from '@xterm/addon-fit';
+import { WebLinksAddon } from '@xterm/addon-web-links';
+import '@xterm/xterm/css/xterm.css';
 
-interface TerminalLine {
+interface TerminalTab {
   id: string;
-  type: "command" | "output" | "error";
-  content: string;
-  timestamp: Date;
+  title: string;
+  terminal: XTerm;
+  fitAddon: FitAddon;
+  isActive: boolean;
 }
 
 export const Terminal = () => {
-  const [lines, setLines] = useState<TerminalLine[]>([
-    {
-      id: "1",
-      type: "output",
-      content: "Welcome to AI IDE Terminal v1.0.0",
-      timestamp: new Date()
-    },
-    {
-      id: "2", 
-      type: "output",
-      content: "Type 'help' for available commands",
-      timestamp: new Date()
-    }
-  ]);
-  const [currentCommand, setCurrentCommand] = useState("");
-  const [commandHistory, setCommandHistory] = useState<string[]>([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
-  const terminalRef = useRef<HTMLDivElement>(null);
+  const [tabs, setTabs] = useState<TerminalTab[]>([]);
+  const [activeTabId, setActiveTabId] = useState<string>("");
+  const [isMaximized, setIsMaximized] = useState(false);
+  const terminalContainerRef = useRef<HTMLDivElement>(null);
+  const tabCounter = useRef(1);
 
-  const scrollToBottom = () => {
-    if (terminalRef.current) {
-      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
-    }
-  };
+  // Create a new terminal tab
+  const createTerminal = () => {
+    const terminal = new XTerm({
+      theme: {
+        background: 'hsl(220 13% 7%)', // terminal-bg from our theme
+        foreground: 'hsl(213 31% 91%)', // foreground from our theme
+        cursor: 'hsl(191 91% 55%)', // primary color
+        cursorAccent: 'hsl(220 13% 7%)',
+        black: 'hsl(220 13% 9%)',
+        red: 'hsl(0 84% 60%)',
+        green: 'hsl(142 76% 36%)',
+        yellow: 'hsl(38 92% 50%)',
+        blue: 'hsl(191 91% 55%)',
+        magenta: 'hsl(270 91% 65%)',
+        cyan: 'hsl(191 91% 65%)',
+        white: 'hsl(213 31% 91%)',
+        brightBlack: 'hsl(217 10% 64%)',
+        brightRed: 'hsl(0 84% 70%)',
+        brightGreen: 'hsl(142 76% 46%)',
+        brightYellow: 'hsl(38 92% 60%)',
+        brightBlue: 'hsl(191 91% 65%)',
+        brightMagenta: 'hsl(270 91% 75%)',
+        brightCyan: 'hsl(191 91% 75%)',
+        brightWhite: 'hsl(213 31% 96%)',
+      },
+      fontFamily: 'JetBrains Mono, Fira Code, Monaco, Consolas, monospace',
+      fontSize: 14,
+      lineHeight: 1.4,
+      cursorStyle: 'bar',
+      cursorBlink: true,
+      scrollback: 1000,
+      tabStopWidth: 4,
+      allowProposedApi: true,
+    });
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [lines]);
+    // Add addons
+    const fitAddon = new FitAddon();
+    const webLinksAddon = new WebLinksAddon();
+    
+    terminal.loadAddon(fitAddon);
+    terminal.loadAddon(webLinksAddon);
 
-  const executeCommand = (command: string) => {
-    const trimmedCommand = command.trim();
-    if (!trimmedCommand) return;
+    // Simulate shell behavior
+    let currentLine = '';
+    const prompt = '$ ';
+    
+    // Welcome message
+    terminal.writeln('Welcome to AI IDE Terminal');
+    terminal.writeln('Powered by Theia-style xterm.js integration');
+    terminal.writeln('Type "help" for available commands\r\n');
+    terminal.write(prompt);
 
-    // Add command to history
-    setCommandHistory(prev => [...prev, trimmedCommand]);
-    setHistoryIndex(-1);
+    // Handle input
+    terminal.onData((data) => {
+      const code = data.charCodeAt(0);
+      
+      if (code === 13) { // Enter
+        terminal.write('\r\n');
+        if (currentLine.trim()) {
+          executeCommand(terminal, currentLine.trim());
+        }
+        currentLine = '';
+        terminal.write(prompt);
+      } else if (code === 127) { // Backspace
+        if (currentLine.length > 0) {
+          currentLine = currentLine.slice(0, -1);
+          terminal.write('\b \b');
+        }
+      } else if (code >= 32) { // Printable characters
+        currentLine += data;
+        terminal.write(data);
+      }
+    });
 
-    // Add command line
-    const commandLine: TerminalLine = {
-      id: Date.now().toString(),
-      type: "command",
-      content: `$ ${trimmedCommand}`,
-      timestamp: new Date()
+    const tabId = `tab-${tabCounter.current++}`;
+    const newTab: TerminalTab = {
+      id: tabId,
+      title: `Terminal ${tabCounter.current - 1}`,
+      terminal,
+      fitAddon,
+      isActive: true,
     };
 
-    setLines(prev => [...prev, commandLine]);
+    // Update tabs
+    setTabs(prevTabs => {
+      const updatedTabs = prevTabs.map(tab => ({ ...tab, isActive: false }));
+      return [...updatedTabs, newTab];
+    });
+    setActiveTabId(tabId);
 
-    // Execute command
+    // Mount terminal after state update
     setTimeout(() => {
-      const output = processCommand(trimmedCommand);
-      const outputLine: TerminalLine = {
-        id: (Date.now() + 1).toString(),
-        type: output.startsWith("Error:") ? "error" : "output",
-        content: output,
-        timestamp: new Date()
-      };
-      setLines(prev => [...prev, outputLine]);
-    }, 100);
+      if (terminalContainerRef.current) {
+        terminal.open(terminalContainerRef.current);
+        fitAddon.fit();
+      }
+    }, 0);
 
-    setCurrentCommand("");
+    return newTab;
   };
 
-  const processCommand = (command: string): string => {
-    const [cmd, ...args] = command.split(" ");
-
+  // Execute terminal commands
+  const executeCommand = (terminal: XTerm, command: string) => {
+    const [cmd, ...args] = command.split(' ');
+    
     switch (cmd.toLowerCase()) {
-      case "help":
-        return `Available commands:
-  help         - Show this help message
-  clear        - Clear terminal
-  ls           - List files
-  cat [file]   - Show file content
-  python [file] - Run Python script
-  npm [cmd]    - Run npm command
-  git [cmd]    - Run git command
-  supabase     - Show Supabase status
-  stripe       - Show Stripe integration
-  ai [query]   - Ask AI assistant`;
-
-      case "clear":
-        setLines([]);
-        return "";
-
-      case "ls":
-        return `src/
-  components/
-    Editor.tsx
-    AIChat.tsx
-    Terminal.tsx
-  hooks/
-    useSupabase.ts
-    useStripe.ts
-backend/
-  api/
-    chat.py
-    code-analyzer.py
-package.json
-tsconfig.json`;
-
-      case "cat":
+      case 'help':
+        terminal.writeln('Available commands:');
+        terminal.writeln('  help           - Show this help');
+        terminal.writeln('  clear          - Clear terminal');
+        terminal.writeln('  ls             - List files');
+        terminal.writeln('  cat [file]     - Show file content');
+        terminal.writeln('  python [file]  - Run Python script');
+        terminal.writeln('  npm [cmd]      - Run npm command');
+        terminal.writeln('  git [cmd]      - Run git command');
+        terminal.writeln('  supabase       - Show Supabase status');
+        terminal.writeln('  stripe         - Show Stripe status');
+        terminal.writeln('  ai [query]     - Ask AI assistant');
+        break;
+        
+      case 'clear':
+        terminal.clear();
+        break;
+        
+      case 'ls':
+        terminal.writeln('src/');
+        terminal.writeln('├── components/');
+        terminal.writeln('│   ├── Editor.tsx');
+        terminal.writeln('│   ├── AIChat.tsx');
+        terminal.writeln('│   └── Terminal.tsx');
+        terminal.writeln('├── hooks/');
+        terminal.writeln('│   ├── useSupabase.ts');
+        terminal.writeln('│   └── useStripe.ts');
+        terminal.writeln('backend/');
+        terminal.writeln('├── api/');
+        terminal.writeln('│   ├── chat.py');
+        terminal.writeln('│   └── code-analyzer.py');
+        terminal.writeln('package.json');
+        terminal.writeln('tsconfig.json');
+        break;
+        
+      case 'python':
         if (args[0]) {
-          return `Reading ${args[0]}...
-This is a simulated file viewer.
-In a real IDE, this would show actual file contents.`;
-        }
-        return "Error: Please specify a file name";
-
-      case "python":
-        if (args[0]) {
-          return `Running ${args[0]}...
-🐍 Python script executed successfully!
-Output: AI IDE backend is running on port 8000
-Supabase connection: ✅ Active
-OpenAI API: ✅ Connected`;
-        }
-        return `Python 3.11.0
-Type "help", "copyright", "credits" or "license" for more information.
->>>`;
-
-      case "npm":
-        const npmCmd = args[0];
-        if (npmCmd === "start" || npmCmd === "dev") {
-          return `> ai-ide@1.0.0 ${npmCmd}
-> vite
-
-  VITE v5.0.0  ready in 350ms
-
-  ➜  Local:   http://localhost:5173/
-  ➜  Network: use --host to expose
-  ➜  press h to show help`;
-        }
-        if (npmCmd === "install") {
-          return `Installing dependencies...
-✅ @stripe/stripe-js
-✅ @supabase/supabase-js
-✅ openai
-✅ All packages installed successfully!`;
-        }
-        return `npm ${args.join(" ")} - command executed`;
-
-      case "git":
-        const gitCmd = args[0];
-        if (gitCmd === "status") {
-          return `On branch main
-Your branch is up to date with 'origin/main'.
-
-Changes not staged for commit:
-  modified:   src/components/Editor.tsx
-  modified:   backend/api/chat.py
-
-no changes added to commit`;
-        }
-        if (gitCmd === "add") {
-          return "Files staged for commit";
-        }
-        return `git ${args.join(" ")} - command executed`;
-
-      case "supabase":
-        return `Supabase Status:
-  Project URL: https://your-project.supabase.co
-  Database: ✅ Connected
-  Auth: ✅ Enabled
-  Storage: ✅ Ready
-  Real-time: ✅ Active
-
-Tables:
-  - users
-  - projects  
-  - code_analyses
-  - ai_sessions`;
-
-      case "stripe":
-        return `Stripe Integration Status:
-  Environment: Test Mode
-  Webhook: ✅ Active
-  Products:
-    - Basic Plan ($9/month)
-    - Pro Plan ($29/month)
-    - Enterprise ($99/month)
-  
-  Recent transactions: 0
-  Active subscriptions: 0`;
-
-      case "ai":
-        const query = args.join(" ");
-        if (query) {
-          return `🤖 AI Assistant Response:
-"${query}"
-
-I can help you with that! Here are some suggestions:
-- Check the documentation for more details
-- Consider using async/await for better performance
-- Make sure to handle errors properly
-- Would you like me to generate code examples?`;
-        }
-        return "Error: Please provide a query for the AI assistant";
-
-      default:
-        return `Error: Command '${cmd}' not found. Type 'help' for available commands.`;
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      executeCommand(currentCommand);
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      if (commandHistory.length > 0) {
-        const newIndex = historyIndex === -1 ? commandHistory.length - 1 : Math.max(0, historyIndex - 1);
-        setHistoryIndex(newIndex);
-        setCurrentCommand(commandHistory[newIndex]);
-      }
-    } else if (e.key === "ArrowDown") {
-      e.preventDefault();
-      if (historyIndex > -1) {
-        const newIndex = historyIndex + 1;
-        if (newIndex >= commandHistory.length) {
-          setHistoryIndex(-1);
-          setCurrentCommand("");
+          terminal.writeln(`Running ${args[0]}...`);
+          terminal.writeln('🐍 Python script executed successfully!');
+          terminal.writeln('AI IDE backend is running on port 8000');
+          terminal.writeln('✅ Supabase connection active');
+          terminal.writeln('✅ OpenAI API connected');
         } else {
-          setHistoryIndex(newIndex);
-          setCurrentCommand(commandHistory[newIndex]);
+          terminal.writeln('Python 3.11.0');
+          terminal.writeln('Type "help()" for more information.');
         }
-      }
+        break;
+        
+      case 'npm':
+        const npmCmd = args[0];
+        if (npmCmd === 'dev' || npmCmd === 'start') {
+          terminal.writeln('> ai-ide@1.0.0 dev');
+          terminal.writeln('> vite');
+          terminal.writeln('');
+          terminal.writeln('  VITE v5.0.0  ready in 350ms');
+          terminal.writeln('');
+          terminal.writeln('  ➜  Local:   http://localhost:5173/');
+          terminal.writeln('  ➜  Network: use --host to expose');
+        } else if (npmCmd === 'install') {
+          terminal.writeln('Installing dependencies...');
+          terminal.writeln('✅ @monaco-editor/react');
+          terminal.writeln('✅ @xterm/xterm');
+          terminal.writeln('✅ @stripe/stripe-js');
+          terminal.writeln('✅ @supabase/supabase-js');
+          terminal.writeln('All packages installed successfully!');
+        } else {
+          terminal.writeln(`npm ${args.join(' ')} - command executed`);
+        }
+        break;
+        
+      case 'git':
+        const gitCmd = args[0];
+        if (gitCmd === 'status') {
+          terminal.writeln('On branch main');
+          terminal.writeln('Your branch is up to date with \'origin/main\'.');
+          terminal.writeln('');
+          terminal.writeln('Changes not staged for commit:');
+          terminal.writeln('  modified:   src/components/Terminal.tsx');
+          terminal.writeln('  modified:   src/components/CodeEditor.tsx');
+          terminal.writeln('');
+          terminal.writeln('no changes added to commit');
+        } else {
+          terminal.writeln(`git ${args.join(' ')} - command executed`);
+        }
+        break;
+        
+      case 'supabase':
+        terminal.writeln('Supabase Status:');
+        terminal.writeln('  Project URL: https://your-project.supabase.co');
+        terminal.writeln('  ✅ Database Connected');
+        terminal.writeln('  ✅ Auth Enabled');
+        terminal.writeln('  ✅ Storage Ready');
+        terminal.writeln('  ✅ Real-time Active');
+        break;
+        
+      case 'stripe':
+        terminal.writeln('Stripe Integration Status:');
+        terminal.writeln('  Environment: Test Mode');
+        terminal.writeln('  ✅ Webhook Active');
+        terminal.writeln('  Products: Basic ($9/mo), Pro ($29/mo)');
+        terminal.writeln('  Active subscriptions: 0');
+        break;
+        
+      case 'ai':
+        const query = args.join(' ');
+        if (query) {
+          terminal.writeln(`🤖 AI Assistant: "${query}"`);
+          terminal.writeln('I can help with that! Consider:');
+          terminal.writeln('- Using async/await for better performance');
+          terminal.writeln('- Proper error handling');
+          terminal.writeln('- Code documentation');
+        } else {
+          terminal.writeln('Error: Please provide a query');
+        }
+        break;
+        
+      default:
+        terminal.writeln(`Command '${cmd}' not found. Type 'help' for available commands.`);
     }
   };
 
-  const clearTerminal = () => {
-    setLines([]);
+  // Create first terminal on mount
+  useEffect(() => {
+    if (tabs.length === 0) {
+      createTerminal();
+    }
+  }, []);
+
+  // Handle tab switching
+  const switchToTab = (tabId: string) => {
+    setTabs(prevTabs =>
+      prevTabs.map(tab => ({ ...tab, isActive: tab.id === tabId }))
+    );
+    setActiveTabId(tabId);
+
+    // Mount the selected terminal
+    const tab = tabs.find(t => t.id === tabId);
+    if (tab && terminalContainerRef.current) {
+      setTimeout(() => {
+        tab.terminal.open(terminalContainerRef.current!);
+        tab.fitAddon.fit();
+      }, 0);
+    }
+  };
+
+  // Close a tab
+  const closeTab = (tabId: string) => {
+    const tab = tabs.find(t => t.id === tabId);
+    if (tab) {
+      tab.terminal.dispose();
+    }
+
+    setTabs(prevTabs => {
+      const filtered = prevTabs.filter(t => t.id !== tabId);
+      if (filtered.length === 0) {
+        // Create new terminal if closing last one
+        setTimeout(createTerminal, 0);
+        return [];
+      }
+      
+      // If closing active tab, switch to another
+      if (tabId === activeTabId && filtered.length > 0) {
+        const newActiveTab = filtered[filtered.length - 1];
+        newActiveTab.isActive = true;
+        setActiveTabId(newActiveTab.id);
+        
+        // Mount the new active terminal
+        setTimeout(() => {
+          if (terminalContainerRef.current) {
+            newActiveTab.terminal.open(terminalContainerRef.current);
+            newActiveTab.fitAddon.fit();
+          }
+        }, 0);
+      }
+      
+      return filtered;
+    });
   };
 
   return (
-    <div className="flex flex-col h-full bg-terminal-bg">
-      {/* Terminal Header */}
-      <div className="flex items-center justify-between p-3 border-b border-border bg-card">
-        <div className="flex items-center gap-2">
-          <TerminalIcon className="w-4 h-4 text-primary" />
-          <span className="font-semibold text-sm text-foreground">Terminal</span>
+    <div className={cn(
+      "flex flex-col bg-terminal-bg transition-all duration-300",
+      isMaximized ? "fixed inset-0 z-50" : "h-full"
+    )}>
+      {/* Terminal Header with Tabs */}
+      <div className="flex items-center justify-between bg-card border-b border-border">
+        {/* Tab Bar */}
+        <div className="flex items-center">
+          {tabs.map((tab) => (
+            <div
+              key={tab.id}
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 text-sm border-r border-border cursor-pointer transition-colors",
+                tab.isActive 
+                  ? "bg-terminal-bg text-foreground" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              )}
+              onClick={() => switchToTab(tab.id)}
+            >
+              <TerminalIcon className="w-3 h-3" />
+              <span className="font-mono">{tab.title}</span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  closeTab(tab.id);
+                }}
+                className="ml-1 p-0.5 hover:bg-muted rounded"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+          
+          {/* Add Tab Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={createTerminal}
+            className="ml-2"
+          >
+            <Plus className="w-4 h-4" />
+          </Button>
         </div>
-        
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={clearTerminal}>
-            <Trash2 className="w-4 h-4" />
+
+        {/* Terminal Controls */}
+        <div className="flex items-center gap-2 px-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsMaximized(!isMaximized)}
+          >
+            {isMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </Button>
         </div>
       </div>
 
-      {/* Terminal Content */}
+      {/* Terminal Container */}
       <div 
-        ref={terminalRef}
-        className="flex-1 overflow-auto p-4 font-mono text-sm"
-      >
-        {lines.map((line) => (
-          <div key={line.id} className="mb-1">
-            <span className={
-              line.type === "command" 
-                ? "text-primary" 
-                : line.type === "error"
-                ? "text-destructive"
-                : "text-foreground"
-            }>
-              {line.content}
-            </span>
-          </div>
-        ))}
-        
-        {/* Command Input */}
-        <div className="flex items-center">
-          <span className="text-primary mr-2">$</span>
-          <input
-            type="text"
-            value={currentCommand}
-            onChange={(e) => setCurrentCommand(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="flex-1 bg-transparent text-foreground outline-none"
-            placeholder="Type a command..."
-            autoFocus
-          />
-        </div>
-      </div>
+        ref={terminalContainerRef}
+        className="flex-1 overflow-hidden"
+        style={{ minHeight: 0 }}
+      />
 
-      {/* Terminal Footer */}
+      {/* Status Bar */}
       <div className="px-4 py-2 bg-muted border-t border-border text-xs text-muted-foreground">
         <div className="flex items-center justify-between">
-          <span>Ready - Type 'help' for commands</span>
+          <span>Theia-style Terminal - {tabs.length} tab{tabs.length !== 1 ? 's' : ''}</span>
           <div className="flex items-center gap-4">
-            <span>History: {commandHistory.length}</span>
-            <span className="text-primary">● Terminal Active</span>
+            <span>xterm.js powered</span>
+            <span className="text-primary">● Ready</span>
           </div>
         </div>
       </div>
