@@ -26,7 +26,7 @@ const Index = () => {
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full animate-pulse"></div>
             </div>
             <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              AI IDE
+              CodeCraft AI
             </h1>
           </div>
           <div className="flex items-center gap-4">
@@ -111,7 +111,7 @@ const Index = () => {
                     <Code className="w-8 h-8 text-white" />
                   </div>
                 </div>
-                <CardTitle className="text-2xl">Welcome to AI IDE</CardTitle>
+                <CardTitle className="text-2xl">Welcome to CodeCraft AI</CardTitle>
                 <CardDescription>
                   Sign in to start coding with AI assistance
                 </CardDescription>
@@ -193,7 +193,7 @@ const Index = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Brain className="w-5 h-5 text-primary" />
-              <span className="font-semibold">AI IDE</span>
+              <span className="font-semibold">CodeCraft AI</span>
             </div>
             <p className="text-sm text-muted-foreground">
               Built for developers who demand excellence
