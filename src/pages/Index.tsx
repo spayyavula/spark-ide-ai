@@ -176,7 +176,7 @@ const Index = () => {
                 <button
                   onClick={() => setActivePanel("ai")}
                   className={cn(
-                    "flex-1 px-3 py-2 text-xs font-medium transition-colors",
+                    "flex-1 px-3 py-2 text-xs font-medium transition-colors border-r border-border",
                     activePanel === "ai"
                       ? "bg-primary/10 text-primary border-b-2 border-primary"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -184,13 +184,13 @@ const Index = () => {
                 >
                   <div className="flex items-center gap-1 justify-center">
                     <Brain className="w-3 h-3" />
-                    AI
+                    <span className="hidden sm:inline">AI</span>
                   </div>
                 </button>
                 <button
                   onClick={() => setActivePanel("terminal")}
                   className={cn(
-                    "flex-1 px-3 py-2 text-xs font-medium transition-colors",
+                    "flex-1 px-3 py-2 text-xs font-medium transition-colors border-r border-border",
                     activePanel === "terminal"
                       ? "bg-primary/10 text-primary border-b-2 border-primary"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -198,7 +198,7 @@ const Index = () => {
                 >
                   <div className="flex items-center gap-1 justify-center">
                     <Code className="w-3 h-3" />
-                    Terminal
+                    <span className="hidden sm:inline">Terminal</span>
                   </div>
                 </button>
                 <button
@@ -212,13 +212,13 @@ const Index = () => {
                 >
                   <div className="flex items-center gap-1 justify-center">
                     <GitBranch className="w-3 h-3" />
-                    GitHub
+                    <span className="hidden sm:inline">GitHub</span>
                   </div>
                 </button>
               </div>
 
               {/* Panel Content */}
-              <div className="flex-1">
+              <div className="flex-1 overflow-hidden">
                 {activePanel === "ai" && <AIChat />}
                 {activePanel === "terminal" && <Terminal />}
                 {activePanel === "github" && (
