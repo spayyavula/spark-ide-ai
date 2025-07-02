@@ -1,306 +1,206 @@
 import { useState } from "react";
-import { FileExplorer } from "@/components/FileExplorer";
-import { CodeEditor } from "@/components/CodeEditor";
-import { AIChat } from "@/components/AIChat";
-import { Terminal } from "@/components/Terminal";
-import { GitHubSearch } from "@/components/GitHubSearch";
-import { StatusBar } from "@/components/StatusBar";
-import { Brain, Code, Database, Zap, Menu, X, GitBranch, Minus, Square, ChevronUp, ChevronDown } from "lucide-react";
+import { Brain, Code, Zap, GitBranch, Star, Users, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const Index = () => {
-  const [selectedFile, setSelectedFile] = useState("Editor.tsx");
-  const [activePanel, setActivePanel] = useState<"ai" | "github">("ai");
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [terminalVisible, setTerminalVisible] = useState(true);
-  const [terminalHeight, setTerminalHeight] = useState(200);
-  const [editorCode, setEditorCode] = useState("");
-  const [gitHubRepoData, setGitHubRepoData] = useState<any[]>([]);
-  const [currentRepo, setCurrentRepo] = useState<any>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  // Handle importing code from GitHub
-  const handleImportCode = (filename: string, content: string, language: string) => {
-    setSelectedFile(filename);
-    setEditorCode(content);
-    // Switch to the editor to show the imported code
-    setActivePanel("ai");
-  };
-
-  // Handle loading GitHub repository into file explorer
-  const handleLoadRepository = (repoData: any[]) => {
-    setGitHubRepoData(repoData);
-    setCurrentRepo(repoData[0]);
-  };
-
-  // Handle loading GitHub folder contents
-  const handleLoadGitHubFolder = async (owner: string, repo: string, path: string) => {
-    try {
-      const response = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}/contents/${path}`
-      );
-      const data = await response.json();
-      return Array.isArray(data) ? data : [data];
-    } catch (error) {
-      console.error('Error fetching GitHub folder:', error);
-      return [];
-    }
-  };
-
-  // Handle file selection from explorer (both local and GitHub)
-  const handleFileSelect = async (filename: string, node?: any) => {
-    setSelectedFile(filename);
-    
-    if (node?.isGitHub && node?.download_url) {
-      // Handle GitHub file
-      try {
-        const response = await fetch(node.download_url);
-        const content = await response.text();
-        setEditorCode(content);
-      } catch (error) {
-        console.error('Error fetching GitHub file content:', error);
-      }
-    } else {
-      // Handle local file - use existing code examples
-      setEditorCode("");
-    }
-  };
-
-  // Handle GitHub folder loading for file explorer
-  const handleGitHubFolderLoad = async (node: any) => {
-    if (!currentRepo || !node.path) return;
-    
-    try {
-      const pathParts = node.path.split('/');
-      const owner = currentRepo.name.split('/')[0] || 'owner';
-      const repo = currentRepo.name.split('/')[1] || currentRepo.name;
-      
-      const response = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}/contents/${node.path}`
-      );
-      const data = await response.json();
-      
-      // Transform and update the node's children
-      const children = Array.isArray(data) ? data.map((file: any) => ({
-        name: file.name,
-        type: file.type === 'dir' ? 'folder' : 'file',
-        path: file.path,
-        url: file.url,
-        download_url: file.download_url,
-        isGitHub: true,
-        children: file.type === 'dir' ? [] : undefined
-      })) : [];
-
-      // Update the gitHubRepoData with the new children
-      // This is a simplified approach - in a real app you'd want more sophisticated state management
-      node.children = children;
-      setGitHubRepoData([...gitHubRepoData]);
-    } catch (error) {
-      console.error('Error loading GitHub folder:', error);
-    }
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Demo only - no actual authentication
+    console.log("Demo login attempt:", { email, password });
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background">
-      {/* Top Header */}
-      <header className="h-12 bg-card border-b border-border flex items-center justify-between px-4">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          >
-            {sidebarCollapsed ? <Menu className="w-4 h-4" /> : <X className="w-4 h-4" />}
-          </Button>
-          
+    <div className="min-h-screen bg-gradient-glow">
+      {/* Header */}
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="relative">
-              <Brain className="w-6 h-6 text-primary" />
-              <div className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+              <Brain className="w-8 h-8 text-primary" />
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full animate-pulse"></div>
             </div>
-            <h1 className="text-lg font-bold bg-gradient-primary bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
               AI IDE
             </h1>
           </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Code className="w-4 h-4 text-primary" />
-              <span>Python + React</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Database className="w-4 h-4 text-success" />
-              <span>Supabase</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Zap className="w-4 h-4 text-warning" />
-              <span>Stripe</span>
-            </div>
-          </div>
-          
-          <div className="text-xs text-muted-foreground">
-            AI-Powered Development Environment
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm">
+              Documentation
+            </Button>
+            <Button variant="ghost" size="sm">
+              Pricing
+            </Button>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* File Explorer Sidebar */}
-        <div className={cn(
-          "transition-all duration-300 border-r border-border",
-          sidebarCollapsed ? "w-0" : "w-64"
-        )}>
-          {!sidebarCollapsed && (
-            <FileExplorer 
-              onFileSelect={handleFileSelect}
-              selectedFile={selectedFile}
-              gitHubRepo={gitHubRepoData}
-              onLoadGitHubFolder={handleGitHubFolderLoad}
-            />
-          )}
-        </div>
-
-        {/* Main Editor Area */}
-        <div className="flex-1 flex flex-col">
-          <div className="flex-1 flex">
-            {/* Code Editor */}
-            <div className="flex-1">
-              <CodeEditor selectedFile={selectedFile} />
+      {/* Hero Section */}
+      <section className="container mx-auto px-4 py-20">
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          {/* Left Column - Hero Content */}
+          <div className="space-y-8">
+            <div className="space-y-4">
+              <h2 className="text-5xl font-bold leading-tight">
+                Code Smarter with{" "}
+                <span className="bg-gradient-primary bg-clip-text text-transparent">
+                  AI-Powered
+                </span>{" "}
+                Development
+              </h2>
+              <p className="text-xl text-muted-foreground leading-relaxed">
+                Transform your development workflow with intelligent code completion, 
+                automated debugging, and seamless collaboration tools.
+              </p>
             </div>
 
-            {/* Right Panel - AI Chat / GitHub */}
-            <div className="w-96 border-l border-border flex flex-col">
-              {/* Panel Tabs */}
-              <div className="flex bg-card border-b border-border">
-                <button
-                  onClick={() => setActivePanel("ai")}
-                  className={cn(
-                    "flex-1 px-3 py-2 text-xs font-medium transition-colors border-r border-border",
-                    activePanel === "ai"
-                      ? "bg-primary/10 text-primary border-b-2 border-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                  )}
-                >
-                  <div className="flex items-center gap-1 justify-center">
-                    <Brain className="w-3 h-3" />
-                    <span className="hidden sm:inline">AI Assistant</span>
-                  </div>
-                </button>
-                <button
-                  onClick={() => setActivePanel("github")}
-                  className={cn(
-                    "flex-1 px-3 py-2 text-xs font-medium transition-colors",
-                    activePanel === "github"
-                      ? "bg-primary/10 text-primary border-b-2 border-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                  )}
-                >
-                  <div className="flex items-center gap-1 justify-center">
-                    <GitBranch className="w-3 h-3" />
-                    <span className="hidden sm:inline">GitHub</span>
-                  </div>
-                </button>
-              </div>
-
-              {/* Panel Content */}
-              <div className="flex-1 overflow-hidden">
-                {activePanel === "ai" && <AIChat />}
-                {activePanel === "github" && (
-                  <GitHubSearch 
-                    onImportCode={handleImportCode}
-                    onLoadRepository={handleLoadRepository}
-                    onLoadGitHubFolder={handleLoadGitHubFolder}
-                  />
-                )}
-              </div>
-            </div>
-          </div>
-          
-          {/* Bottom Terminal Panel */}
-          {terminalVisible && (
-            <div 
-              className="border-t border-border flex flex-col bg-terminal-bg"
-              style={{ height: `${terminalHeight}px` }}
-            >
-              {/* Terminal Header */}
-              <div className="flex items-center justify-between px-4 py-2 bg-card border-b border-border">
-                <div className="flex items-center gap-2">
-                  <Code className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-semibold">Terminal</span>
+            {/* Benefits */}
+            <div className="grid gap-6">
+              <div className="flex items-start gap-4">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Brain className="w-6 h-6 text-primary" />
                 </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setTerminalHeight(Math.max(150, terminalHeight - 50))}
-                    className="h-6 w-6 p-0"
-                  >
-                    <ChevronDown className="w-3 h-3" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setTerminalHeight(Math.min(400, terminalHeight + 50))}
-                    className="h-6 w-6 p-0"
-                  >
-                    <ChevronUp className="w-3 h-3" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setTerminalVisible(false)}
-                    className="h-6 w-6 p-0"
-                  >
-                    <X className="w-3 h-3" />
-                  </Button>
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">AI-Powered Code Intelligence</h3>
+                  <p className="text-muted-foreground">
+                    Get intelligent suggestions, automatic bug fixes, and code optimization 
+                    powered by advanced AI that understands your codebase.
+                  </p>
                 </div>
               </div>
-              
-              {/* Terminal Content */}
-              <div className="flex-1 overflow-hidden">
-                <Terminal />
+
+              <div className="flex items-start gap-4">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Zap className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Lightning-Fast Development</h3>
+                  <p className="text-muted-foreground">
+                    Accelerate your workflow with instant compilation, real-time collaboration, 
+                    and integrated tools that eliminate context switching.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <GitBranch className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Seamless GitHub Integration</h3>
+                  <p className="text-muted-foreground">
+                    Connect directly to your repositories, browse code in-browser, 
+                    and manage your projects without leaving the IDE.
+                  </p>
+                </div>
               </div>
             </div>
-          )}
-        </div>
-      </div>
+          </div>
 
-      {/* Status Bar with Terminal Toggle */}
-      <div className="flex items-center justify-between px-4 py-2 bg-card border-t border-border text-xs">
-        <div className="flex items-center gap-4 text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <GitBranch className="w-3 h-3" />
-            <span>main</span>
+          {/* Right Column - Login Demo */}
+          <div className="flex justify-center">
+            <Card className="w-full max-w-md shadow-elevation">
+              <CardHeader className="text-center space-y-2">
+                <div className="flex justify-center">
+                  <div className="p-3 bg-gradient-primary rounded-full">
+                    <Code className="w-8 h-8 text-white" />
+                  </div>
+                </div>
+                <CardTitle className="text-2xl">Welcome to AI IDE</CardTitle>
+                <CardDescription>
+                  Sign in to start coding with AI assistance
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="developer@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="transition-all duration-200 focus:ring-primary/20"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="transition-all duration-200 focus:ring-primary/20"
+                    />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-gradient-primary hover:opacity-90 transition-opacity"
+                  >
+                    Sign In to IDE
+                  </Button>
+                  <div className="text-center">
+                    <Button variant="ghost" size="sm" className="text-primary">
+                      Try Demo Without Account
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
           </div>
-          <span>AI-Powered IDE</span>
-          <span>TypeScript React</span>
         </div>
+      </section>
 
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setTerminalVisible(!terminalVisible)}
-              className={cn(
-                "h-6 px-2 text-xs",
-                terminalVisible ? "bg-primary/10 text-primary" : "text-muted-foreground"
-              )}
-            >
-              <Code className="w-3 h-3 mr-1" />
-              Terminal
-            </Button>
-          </div>
-          
-          <div className="flex items-center gap-1 text-primary">
-            <div className="w-2 h-2 bg-primary rounded-full animate-pulse-glow"></div>
-            <span className="text-xs font-medium">Ready</span>
+      {/* Stats Section */}
+      <section className="border-t border-border bg-card/30">
+        <div className="container mx-auto px-4 py-16">
+          <div className="grid md:grid-cols-3 gap-8 text-center">
+            <div className="space-y-2">
+              <div className="flex items-center justify-center gap-2">
+                <Star className="w-5 h-5 text-primary" />
+                <span className="text-3xl font-bold text-primary">99%</span>
+              </div>
+              <p className="text-muted-foreground">Developer Satisfaction</p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
+                <span className="text-3xl font-bold text-primary">50K+</span>
+              </div>
+              <p className="text-muted-foreground">Active Developers</p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-center gap-2">
+                <Rocket className="w-5 h-5 text-primary" />
+                <span className="text-3xl font-bold text-primary">3x</span>
+              </div>
+              <p className="text-muted-foreground">Faster Development</p>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-border bg-card">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Brain className="w-5 h-5 text-primary" />
+              <span className="font-semibold">AI IDE</span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Built for developers who demand excellence
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
