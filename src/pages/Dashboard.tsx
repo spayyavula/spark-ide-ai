@@ -129,6 +129,9 @@ const Dashboard = () => {
   const createProject = async () => {
     if (!user || !newProjectName.trim()) return;
 
+    console.log('Creating project with user:', user);
+    console.log('Project data:', { name: newProjectName, description: newProjectDescription, owner_id: user.id });
+
     try {
       const { data, error } = await supabase
         .from('projects')
@@ -185,6 +188,11 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-glow">
+      {/* Debug info */}
+      <div className="fixed top-0 left-0 bg-black text-white p-2 text-xs z-50">
+        User: {user ? `${user.name} (${user.id})` : 'Not logged in'}
+      </div>
+      
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
