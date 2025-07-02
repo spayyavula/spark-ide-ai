@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Play, Save, Download, Maximize2, Copy, Check, Code } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import Editor from '@monaco-editor/react';
 
 const codeExamples: Record<string, string> = {
   "Editor.tsx": `import React, { useState, useEffect } from 'react';
@@ -249,6 +250,7 @@ interface CodeEditorProps {
 export const CodeEditor = ({ selectedFile }: CodeEditorProps) => {
   const [code, setCode] = useState(codeExamples[selectedFile] || "// Select a file from the explorer to start coding...");
   const [copied, setCopied] = useState(false);
+  const editorRef = useRef(null);
 
   useEffect(() => {
     setCode(codeExamples[selectedFile] || "// Select a file from the explorer to start coding...");
@@ -265,6 +267,40 @@ export const CodeEditor = ({ selectedFile }: CodeEditorProps) => {
     if (filename.endsWith('.py')) return 'Python';
     if (filename.endsWith('.json')) return 'JSON';
     return 'Text';
+  };
+
+  const getMonacoLanguage = (filename: string) => {
+    if (filename.endsWith('.tsx') || filename.endsWith('.ts')) return 'typescript';
+    if (filename.endsWith('.py')) return 'python';
+    if (filename.endsWith('.json')) return 'json';
+    if (filename.endsWith('.js') || filename.endsWith('.jsx')) return 'javascript';
+    if (filename.endsWith('.css')) return 'css';
+    if (filename.endsWith('.html')) return 'html';
+    if (filename.endsWith('.md')) return 'markdown';
+    return 'plaintext';
+  };
+
+  const handleEditorDidMount = (editor: any) => {
+    editorRef.current = editor;
+    
+    // Configure Monaco theme to match our design system
+    editor.updateOptions({
+      fontSize: 14,
+      fontFamily: 'JetBrains Mono, Fira Code, Monaco, Consolas, monospace',
+      lineHeight: 21,
+      tabSize: 2,
+      insertSpaces: true,
+      automaticLayout: true,
+      minimap: { enabled: true },
+      scrollBeyondLastLine: false,
+      wordWrap: 'on',
+      renderLineHighlight: 'all',
+      smoothScrolling: true,
+      cursorBlinking: 'smooth',
+      suggestOnTriggerCharacters: true,
+      quickSuggestions: true,
+      parameterHints: { enabled: true },
+    });
   };
 
   return (
@@ -293,27 +329,96 @@ export const CodeEditor = ({ selectedFile }: CodeEditorProps) => {
         </div>
       </div>
 
-      {/* Editor Area */}
-      <div className="flex-1 relative">
-        <textarea
+      {/* Monaco Editor Area */}
+      <div className="flex-1">
+        <Editor
           value={code}
-          onChange={(e) => setCode(e.target.value)}
-          className="w-full h-full p-4 bg-transparent text-foreground font-mono text-sm resize-none focus:outline-none"
-          placeholder="Start coding your AI-powered IDE..."
-          style={{
-            lineHeight: '1.5',
-            tabSize: 2
+          language={getMonacoLanguage(selectedFile)}
+          onChange={(value) => setCode(value || "")}
+          onMount={handleEditorDidMount}
+          theme="vs-dark"
+          options={{
+            fontSize: 14,
+            fontFamily: 'JetBrains Mono, Fira Code, Monaco, Consolas, monospace',
+            lineHeight: 21,
+            tabSize: 2,
+            insertSpaces: true,
+            automaticLayout: true,
+            minimap: { enabled: true },
+            scrollBeyondLastLine: false,
+            wordWrap: 'on',
+            renderLineHighlight: 'all',
+            smoothScrolling: true,
+            cursorBlinking: 'smooth',
+            suggestOnTriggerCharacters: true,
+            quickSuggestions: {
+              other: 'on',
+              comments: 'off',
+              strings: 'off',
+            },
+            parameterHints: { enabled: true },
+            bracketPairColorization: { enabled: true },
+            guides: {
+              bracketPairs: 'active',
+              indentation: true,
+            },
+            inlineSuggest: { enabled: true },
+            acceptSuggestionOnCommitCharacter: true,
+            acceptSuggestionOnEnter: 'on',
+            accessibilitySupport: 'auto',
+            autoIndent: 'full',
+            contextmenu: true,
+            copyWithSyntaxHighlighting: true,
+            cursorSmoothCaretAnimation: 'on',
+            find: {
+              autoFindInSelection: 'never',
+              seedSearchStringFromSelection: 'selection',
+            },
+            folding: true,
+            foldingHighlight: true,
+            formatOnPaste: true,
+            formatOnType: true,
+            glyphMargin: true,
+            hover: { enabled: true },
+            lightbulb: { enabled: true },
+            links: true,
+            mouseWheelZoom: true,
+            multiCursorModifier: 'alt',
+            occurrencesHighlight: 'singleFile',
+            renderControlCharacters: false,
+            renderFinalNewline: 'on',
+            renderWhitespace: 'boundary',
+            roundedSelection: false,
+            rulers: [],
+            scrollbar: {
+              vertical: 'visible',
+              horizontal: 'visible',
+              arrowSize: 11,
+              useShadows: true,
+              verticalHasArrows: false,
+              horizontalHasArrows: false,
+            },
+            selectOnLineNumbers: true,
+            selectionHighlight: true,
+            showFoldingControls: 'mouseover',
+            showUnused: true,
+            snippetSuggestions: 'top',
+            suggest: {
+              insertMode: 'insert',
+              filterGraceful: true,
+              showWords: true,
+            },
+            wordBasedSuggestions: 'matchingDocuments',
           }}
-        />
-        
-        {/* Line numbers */}
-        <div className="absolute left-0 top-0 p-4 text-muted-foreground font-mono text-sm pointer-events-none">
-          {code.split('\n').map((_, index) => (
-            <div key={index} className="leading-6">
-              {index + 1}
+          loading={
+            <div className="h-full flex items-center justify-center bg-code-bg text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                Loading Monaco Editor...
+              </div>
             </div>
-          ))}
-        </div>
+          }
+        />
       </div>
 
       {/* Status Bar */}
