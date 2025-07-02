@@ -7,6 +7,10 @@ interface FileNode {
   type: "file" | "folder";
   children?: FileNode[];
   language?: string;
+  path?: string;
+  url?: string;
+  download_url?: string;
+  isGitHub?: boolean;
 }
 
 const projectStructure: FileNode[] = [
@@ -57,8 +61,9 @@ const projectStructure: FileNode[] = [
 interface FileItemProps {
   node: FileNode;
   level: number;
-  onSelect: (path: string) => void;
+  onSelect: (filename: string, node?: FileNode) => void;
   selectedFile: string;
+  onLoadGitHubFolder?: (node: FileNode) => void;
 }
 
 const getFileIcon = (name: string, language?: string) => {
@@ -70,14 +75,18 @@ const getFileIcon = (name: string, language?: string) => {
   return <File className="w-3 h-3 text-muted-foreground" />;
 };
 
-const FileItem = ({ node, level, onSelect, selectedFile }: FileItemProps) => {
+const FileItem = ({ node, level, onSelect, selectedFile, onLoadGitHubFolder }: FileItemProps) => {
   const [isExpanded, setIsExpanded] = useState(level < 2);
   
-  const handleClick = () => {
+  const handleClick = async () => {
     if (node.type === "folder") {
       setIsExpanded(!isExpanded);
+      // If it's a GitHub folder that hasn't been loaded yet, load its contents
+      if (node.isGitHub && (!node.children || node.children.length === 0) && onLoadGitHubFolder) {
+        onLoadGitHubFolder(node);
+      }
     } else {
-      onSelect(node.name);
+      onSelect(node.name, node);
     }
   };
 
@@ -125,6 +134,7 @@ const FileItem = ({ node, level, onSelect, selectedFile }: FileItemProps) => {
               level={level + 1}
               onSelect={onSelect}
               selectedFile={selectedFile}
+              onLoadGitHubFolder={onLoadGitHubFolder}
             />
           ))}
         </div>
@@ -134,27 +144,32 @@ const FileItem = ({ node, level, onSelect, selectedFile }: FileItemProps) => {
 };
 
 interface FileExplorerProps {
-  onFileSelect: (filename: string) => void;
+  onFileSelect: (filename: string, node?: FileNode) => void;
   selectedFile: string;
+  gitHubRepo?: FileNode[];
+  onLoadGitHubFolder?: (node: FileNode) => void;
 }
 
-export const FileExplorer = ({ onFileSelect, selectedFile }: FileExplorerProps) => {
+export const FileExplorer = ({ onFileSelect, selectedFile, gitHubRepo, onLoadGitHubFolder }: FileExplorerProps) => {
+  const displayStructure = gitHubRepo && gitHubRepo.length > 0 ? gitHubRepo : projectStructure;
+
   return (
     <div className="h-full bg-sidebar-bg border-r border-border">
       <div className="p-4 border-b border-border">
         <h2 className="font-semibold text-sm text-foreground uppercase tracking-wide">
-          Explorer
+          {gitHubRepo && gitHubRepo.length > 0 ? "GitHub Repository" : "Explorer"}
         </h2>
       </div>
       
       <div className="overflow-auto h-full">
-        {projectStructure.map((node, index) => (
+        {displayStructure.map((node, index) => (
           <FileItem
             key={`${node.name}-${index}`}
             node={node}
             level={0}
             onSelect={onFileSelect}
             selectedFile={selectedFile}
+            onLoadGitHubFolder={onLoadGitHubFolder}
           />
         ))}
       </div>

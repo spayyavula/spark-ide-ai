@@ -42,9 +42,11 @@ interface GitHubFileContent {
 
 interface GitHubSearchProps {
   onImportCode: (filename: string, content: string, language: string) => void;
+  onLoadRepository: (repoData: any[]) => void;
+  onLoadGitHubFolder: (owner: string, repo: string, path: string) => Promise<any[]>;
 }
 
-export const GitHubSearch = ({ onImportCode }: GitHubSearchProps) => {
+export const GitHubSearch = ({ onImportCode, onLoadRepository, onLoadGitHubFolder }: GitHubSearchProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [selectedRepo, setSelectedRepo] = useState<GitHubRepo | null>(null);
@@ -71,7 +73,7 @@ export const GitHubSearch = ({ onImportCode }: GitHubSearchProps) => {
     setLoading(false);
   };
 
-  // Get repository contents
+  // Get repository contents and transform to FileNode format
   const getRepoContents = async (repo: GitHubRepo, path: string = "") => {
     setLoading(true);
     try {
@@ -81,10 +83,37 @@ export const GitHubSearch = ({ onImportCode }: GitHubSearchProps) => {
       const data = await response.json();
       setRepoFiles(Array.isArray(data) ? data : [data]);
       setCurrentPath(path);
+      
+      // If this is the root path, also load the repository into the file explorer
+      if (path === "") {
+        const fileNodes = transformToFileNodes(Array.isArray(data) ? data : [data], repo.full_name);
+        onLoadRepository([{
+          name: repo.name,
+          type: "folder" as const,
+          children: fileNodes,
+          isGitHub: true,
+          path: "",
+          url: `https://api.github.com/repos/${repo.full_name}/contents`
+        }]);
+      }
     } catch (error) {
       console.error('Error fetching repository contents:', error);
     }
     setLoading(false);
+  };
+
+  // Transform GitHub API response to FileNode format
+  const transformToFileNodes = (files: GitHubFile[], repoName: string): any[] => {
+    return files.map(file => ({
+      name: file.name,
+      type: file.type === 'dir' ? 'folder' : 'file',
+      path: file.path,
+      url: file.url,
+      download_url: file.download_url,
+      isGitHub: true,
+      language: file.type === 'file' ? getLanguageFromExtension(file.name) : undefined,
+      children: file.type === 'dir' ? [] : undefined
+    }));
   };
 
   // Get file content
@@ -191,18 +220,30 @@ export const GitHubSearch = ({ onImportCode }: GitHubSearchProps) => {
                           {repo.description}
                         </p>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedRepo(repo);
-                          getRepoContents(repo);
-                          setActiveTab("browse");
-                        }}
-                      >
-                        <Eye className="w-3 h-3 mr-1" />
-                        Browse
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedRepo(repo);
+                            getRepoContents(repo);
+                            setActiveTab("browse");
+                          }}
+                        >
+                          <Eye className="w-3 h-3 mr-1" />
+                          Browse
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setSelectedRepo(repo);
+                            getRepoContents(repo); // This will load into file explorer
+                          }}
+                        >
+                          <Download className="w-3 h-3 mr-1" />
+                          Load to Explorer
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0">

@@ -14,6 +14,8 @@ const Index = () => {
   const [activePanel, setActivePanel] = useState<"ai" | "terminal" | "github">("ai");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [editorCode, setEditorCode] = useState("");
+  const [gitHubRepoData, setGitHubRepoData] = useState<any[]>([]);
+  const [currentRepo, setCurrentRepo] = useState<any>(null);
 
   // Handle importing code from GitHub
   const handleImportCode = (filename: string, content: string, language: string) => {
@@ -21,6 +23,79 @@ const Index = () => {
     setEditorCode(content);
     // Switch to the editor to show the imported code
     setActivePanel("ai");
+  };
+
+  // Handle loading GitHub repository into file explorer
+  const handleLoadRepository = (repoData: any[]) => {
+    setGitHubRepoData(repoData);
+    setCurrentRepo(repoData[0]);
+  };
+
+  // Handle loading GitHub folder contents
+  const handleLoadGitHubFolder = async (owner: string, repo: string, path: string) => {
+    try {
+      const response = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/contents/${path}`
+      );
+      const data = await response.json();
+      return Array.isArray(data) ? data : [data];
+    } catch (error) {
+      console.error('Error fetching GitHub folder:', error);
+      return [];
+    }
+  };
+
+  // Handle file selection from explorer (both local and GitHub)
+  const handleFileSelect = async (filename: string, node?: any) => {
+    setSelectedFile(filename);
+    
+    if (node?.isGitHub && node?.download_url) {
+      // Handle GitHub file
+      try {
+        const response = await fetch(node.download_url);
+        const content = await response.text();
+        setEditorCode(content);
+      } catch (error) {
+        console.error('Error fetching GitHub file content:', error);
+      }
+    } else {
+      // Handle local file - use existing code examples
+      setEditorCode("");
+    }
+  };
+
+  // Handle GitHub folder loading for file explorer
+  const handleGitHubFolderLoad = async (node: any) => {
+    if (!currentRepo || !node.path) return;
+    
+    try {
+      const pathParts = node.path.split('/');
+      const owner = currentRepo.name.split('/')[0] || 'owner';
+      const repo = currentRepo.name.split('/')[1] || currentRepo.name;
+      
+      const response = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/contents/${node.path}`
+      );
+      const data = await response.json();
+      
+      // Transform and update the node's children
+      const children = Array.isArray(data) ? data.map((file: any) => ({
+        name: file.name,
+        type: file.type === 'dir' ? 'folder' : 'file',
+        path: file.path,
+        url: file.url,
+        download_url: file.download_url,
+        isGitHub: true,
+        children: file.type === 'dir' ? [] : undefined
+      })) : [];
+
+      // Update the gitHubRepoData with the new children
+      // This is a simplified approach - in a real app you'd want more sophisticated state management
+      node.children = children;
+      setGitHubRepoData([...gitHubRepoData]);
+    } catch (error) {
+      console.error('Error loading GitHub folder:', error);
+    }
   };
 
   return (
@@ -78,8 +153,10 @@ const Index = () => {
         )}>
           {!sidebarCollapsed && (
             <FileExplorer 
-              onFileSelect={setSelectedFile}
+              onFileSelect={handleFileSelect}
               selectedFile={selectedFile}
+              gitHubRepo={gitHubRepoData}
+              onLoadGitHubFolder={handleGitHubFolderLoad}
             />
           )}
         </div>
@@ -144,7 +221,13 @@ const Index = () => {
               <div className="flex-1">
                 {activePanel === "ai" && <AIChat />}
                 {activePanel === "terminal" && <Terminal />}
-                {activePanel === "github" && <GitHubSearch onImportCode={handleImportCode} />}
+                {activePanel === "github" && (
+                  <GitHubSearch 
+                    onImportCode={handleImportCode}
+                    onLoadRepository={handleLoadRepository}
+                    onLoadGitHubFolder={handleLoadGitHubFolder}
+                  />
+                )}
               </div>
             </div>
           </div>
