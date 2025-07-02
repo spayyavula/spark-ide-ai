@@ -5,14 +5,16 @@ import { AIChat } from "@/components/AIChat";
 import { Terminal } from "@/components/Terminal";
 import { GitHubSearch } from "@/components/GitHubSearch";
 import { StatusBar } from "@/components/StatusBar";
-import { Brain, Code, Database, Zap, Menu, X, GitBranch } from "lucide-react";
+import { Brain, Code, Database, Zap, Menu, X, GitBranch, Minus, Square, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const Index = () => {
   const [selectedFile, setSelectedFile] = useState("Editor.tsx");
-  const [activePanel, setActivePanel] = useState<"ai" | "terminal" | "github">("ai");
+  const [activePanel, setActivePanel] = useState<"ai" | "github">("ai");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [terminalVisible, setTerminalVisible] = useState(true);
+  const [terminalHeight, setTerminalHeight] = useState(200);
   const [editorCode, setEditorCode] = useState("");
   const [gitHubRepoData, setGitHubRepoData] = useState<any[]>([]);
   const [currentRepo, setCurrentRepo] = useState<any>(null);
@@ -169,7 +171,7 @@ const Index = () => {
               <CodeEditor selectedFile={selectedFile} />
             </div>
 
-            {/* Right Panel - AI Chat / Terminal / GitHub */}
+            {/* Right Panel - AI Chat / GitHub */}
             <div className="w-96 border-l border-border flex flex-col">
               {/* Panel Tabs */}
               <div className="flex bg-card border-b border-border">
@@ -184,21 +186,7 @@ const Index = () => {
                 >
                   <div className="flex items-center gap-1 justify-center">
                     <Brain className="w-3 h-3" />
-                    <span className="hidden sm:inline">AI</span>
-                  </div>
-                </button>
-                <button
-                  onClick={() => setActivePanel("terminal")}
-                  className={cn(
-                    "flex-1 px-3 py-2 text-xs font-medium transition-colors border-r border-border",
-                    activePanel === "terminal"
-                      ? "bg-primary/10 text-primary border-b-2 border-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                  )}
-                >
-                  <div className="flex items-center gap-1 justify-center">
-                    <Code className="w-3 h-3" />
-                    <span className="hidden sm:inline">Terminal</span>
+                    <span className="hidden sm:inline">AI Assistant</span>
                   </div>
                 </button>
                 <button
@@ -220,7 +208,6 @@ const Index = () => {
               {/* Panel Content */}
               <div className="flex-1 overflow-hidden">
                 {activePanel === "ai" && <AIChat />}
-                {activePanel === "terminal" && <Terminal />}
                 {activePanel === "github" && (
                   <GitHubSearch 
                     onImportCode={handleImportCode}
@@ -231,11 +218,89 @@ const Index = () => {
               </div>
             </div>
           </div>
+          
+          {/* Bottom Terminal Panel */}
+          {terminalVisible && (
+            <div 
+              className="border-t border-border flex flex-col bg-terminal-bg"
+              style={{ height: `${terminalHeight}px` }}
+            >
+              {/* Terminal Header */}
+              <div className="flex items-center justify-between px-4 py-2 bg-card border-b border-border">
+                <div className="flex items-center gap-2">
+                  <Code className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-semibold">Terminal</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setTerminalHeight(Math.max(150, terminalHeight - 50))}
+                    className="h-6 w-6 p-0"
+                  >
+                    <ChevronDown className="w-3 h-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setTerminalHeight(Math.min(400, terminalHeight + 50))}
+                    className="h-6 w-6 p-0"
+                  >
+                    <ChevronUp className="w-3 h-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setTerminalVisible(false)}
+                    className="h-6 w-6 p-0"
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Terminal Content */}
+              <div className="flex-1 overflow-hidden">
+                <Terminal />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Status Bar */}
-      <StatusBar />
+      {/* Status Bar with Terminal Toggle */}
+      <div className="flex items-center justify-between px-4 py-2 bg-card border-t border-border text-xs">
+        <div className="flex items-center gap-4 text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <GitBranch className="w-3 h-3" />
+            <span>main</span>
+          </div>
+          <span>AI-Powered IDE</span>
+          <span>TypeScript React</span>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setTerminalVisible(!terminalVisible)}
+              className={cn(
+                "h-6 px-2 text-xs",
+                terminalVisible ? "bg-primary/10 text-primary" : "text-muted-foreground"
+              )}
+            >
+              <Code className="w-3 h-3 mr-1" />
+              Terminal
+            </Button>
+          </div>
+          
+          <div className="flex items-center gap-1 text-primary">
+            <div className="w-2 h-2 bg-primary rounded-full animate-pulse-glow"></div>
+            <span className="text-xs font-medium">Ready</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
