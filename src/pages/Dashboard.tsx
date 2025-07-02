@@ -80,14 +80,7 @@ const Dashboard = () => {
     try {
       const { data, error } = await supabase
         .from('projects')
-        .select(`
-          *,
-          project_members (
-            id,
-            role,
-            user_id
-          )
-        `)
+        .select('*')
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
