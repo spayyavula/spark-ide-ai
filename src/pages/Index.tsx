@@ -1,19 +1,28 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Brain, Code, Zap, GitBranch, Star, Users, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useMockAuth } from "@/hooks/useMockAuth";
+import Dashboard from "./Dashboard";
 
 const Index = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const { user, login, isLoading, isAuthenticated } = useMockAuth();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Demo only - no actual authentication
-    console.log("Demo login attempt:", { email, password });
+    if (email && password) {
+      await login(email, password);
+    }
   };
+
+  // Show dashboard if user is authenticated
+  if (isAuthenticated) {
+    return <Dashboard />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-glow">
@@ -142,8 +151,9 @@ const Index = () => {
                   <Button 
                     type="submit" 
                     className="w-full bg-gradient-primary hover:opacity-90 transition-opacity"
+                    disabled={isLoading}
                   >
-                    Sign In to IDE
+                    {isLoading ? "Signing In..." : "Sign In to IDE"}
                   </Button>
                   <div className="text-center">
                     <Button variant="ghost" size="sm" className="text-primary">
