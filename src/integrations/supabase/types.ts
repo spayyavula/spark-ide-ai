@@ -72,6 +72,109 @@ export type Database = {
         }
         Relationships: []
       }
+      project_members: {
+        Row: {
+          id: string
+          invited_by: string
+          joined_at: string
+          project_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          invited_by: string
+          joined_at?: string
+          project_id: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          invited_by?: string
+          joined_at?: string
+          project_id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_presence: {
+        Row: {
+          cursor_position: Json | null
+          id: string
+          is_active: boolean
+          last_seen: string
+          project_id: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          cursor_position?: Json | null
+          id?: string
+          is_active?: boolean
+          last_seen?: string
+          project_id: string
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          cursor_position?: Json | null
+          id?: string
+          is_active?: boolean
+          last_seen?: string
+          project_id?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_presence_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_public: boolean
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       subscribers: {
         Row: {
           created_at: string
@@ -113,10 +216,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_project_access: {
+        Args: { _project_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "owner" | "senior_dev" | "developer" | "viewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -231,6 +337,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["owner", "senior_dev", "developer", "viewer"],
+    },
   },
 } as const
