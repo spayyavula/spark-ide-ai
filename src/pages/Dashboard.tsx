@@ -77,7 +77,10 @@ const Dashboard = () => {
   const loadProjects = async () => {
     if (!user) return;
 
+    console.log('Loading projects for user:', user);
+
     try {
+      console.log('About to query projects table...');
       const { data, error } = await supabase
         .from('projects')
         .select('*')
