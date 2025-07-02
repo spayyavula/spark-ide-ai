@@ -3,15 +3,25 @@ import { FileExplorer } from "@/components/FileExplorer";
 import { CodeEditor } from "@/components/CodeEditor";
 import { AIChat } from "@/components/AIChat";
 import { Terminal } from "@/components/Terminal";
+import { GitHubSearch } from "@/components/GitHubSearch";
 import { StatusBar } from "@/components/StatusBar";
-import { Brain, Code, Database, Zap, Menu, X } from "lucide-react";
+import { Brain, Code, Database, Zap, Menu, X, GitBranch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const Index = () => {
   const [selectedFile, setSelectedFile] = useState("Editor.tsx");
-  const [activePanel, setActivePanel] = useState<"ai" | "terminal">("ai");
+  const [activePanel, setActivePanel] = useState<"ai" | "terminal" | "github">("ai");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [editorCode, setEditorCode] = useState("");
+
+  // Handle importing code from GitHub
+  const handleImportCode = (filename: string, content: string, language: string) => {
+    setSelectedFile(filename);
+    setEditorCode(content);
+    // Switch to the editor to show the imported code
+    setActivePanel("ai");
+  };
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -82,43 +92,59 @@ const Index = () => {
               <CodeEditor selectedFile={selectedFile} />
             </div>
 
-            {/* Right Panel - AI Chat / Terminal */}
+            {/* Right Panel - AI Chat / Terminal / GitHub */}
             <div className="w-96 border-l border-border flex flex-col">
               {/* Panel Tabs */}
               <div className="flex bg-card border-b border-border">
                 <button
                   onClick={() => setActivePanel("ai")}
                   className={cn(
-                    "flex-1 px-4 py-2 text-sm font-medium transition-colors",
+                    "flex-1 px-3 py-2 text-xs font-medium transition-colors",
                     activePanel === "ai"
                       ? "bg-primary/10 text-primary border-b-2 border-primary"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   )}
                 >
-                  <div className="flex items-center gap-2 justify-center">
-                    <Brain className="w-4 h-4" />
-                    AI Assistant
+                  <div className="flex items-center gap-1 justify-center">
+                    <Brain className="w-3 h-3" />
+                    AI
                   </div>
                 </button>
                 <button
                   onClick={() => setActivePanel("terminal")}
                   className={cn(
-                    "flex-1 px-4 py-2 text-sm font-medium transition-colors",
+                    "flex-1 px-3 py-2 text-xs font-medium transition-colors",
                     activePanel === "terminal"
                       ? "bg-primary/10 text-primary border-b-2 border-primary"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   )}
                 >
-                  <div className="flex items-center gap-2 justify-center">
-                    <Code className="w-4 h-4" />
+                  <div className="flex items-center gap-1 justify-center">
+                    <Code className="w-3 h-3" />
                     Terminal
+                  </div>
+                </button>
+                <button
+                  onClick={() => setActivePanel("github")}
+                  className={cn(
+                    "flex-1 px-3 py-2 text-xs font-medium transition-colors",
+                    activePanel === "github"
+                      ? "bg-primary/10 text-primary border-b-2 border-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  )}
+                >
+                  <div className="flex items-center gap-1 justify-center">
+                    <GitBranch className="w-3 h-3" />
+                    GitHub
                   </div>
                 </button>
               </div>
 
               {/* Panel Content */}
               <div className="flex-1">
-                {activePanel === "ai" ? <AIChat /> : <Terminal />}
+                {activePanel === "ai" && <AIChat />}
+                {activePanel === "terminal" && <Terminal />}
+                {activePanel === "github" && <GitHubSearch onImportCode={handleImportCode} />}
               </div>
             </div>
           </div>
