@@ -122,7 +122,7 @@ const Index = () => {
                 </div>
                 <CardTitle className="text-2xl">Welcome to ThumbsUp Dev</CardTitle>
                 <CardDescription>
-                  Build code that earns approval
+                  Demo Login - Enter any email/password to test
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -156,9 +156,26 @@ const Index = () => {
                   >
                     {isLoading ? "Signing In..." : "Sign In to IDE"}
                   </Button>
-                  <div className="text-center">
-                    <Button variant="ghost" size="sm" className="text-primary">
-                      Try Demo Without Account
+                  <div className="flex gap-2">
+                    <Button 
+                      type="button"
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => {
+                        setEmail("test@example.com");
+                        setPassword("password123");
+                      }}
+                    >
+                      Quick Fill
+                    </Button>
+                    <Button 
+                      type="button"
+                      variant="ghost" 
+                      className="flex-1 text-primary"
+                      onClick={() => login("demo@thumbsup.dev", "demo123")}
+                      disabled={isLoading}
+                    >
+                      Instant Demo
                     </Button>
                   </div>
                 </form>
