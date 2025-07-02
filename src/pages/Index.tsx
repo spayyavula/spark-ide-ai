@@ -26,7 +26,7 @@ const Index = () => {
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full animate-pulse"></div>
             </div>
             <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              CodeCraft AI
+              ThumbsUp Dev
             </h1>
           </div>
           <div className="flex items-center gap-4">
@@ -46,17 +46,16 @@ const Index = () => {
           {/* Left Column - Hero Content */}
           <div className="space-y-8">
             <div className="space-y-4">
-              <h2 className="text-5xl font-bold leading-tight">
-                Code Smarter with{" "}
-                <span className="bg-gradient-primary bg-clip-text text-transparent">
-                  AI-Powered
-                </span>{" "}
-                Development
-              </h2>
-              <p className="text-xl text-muted-foreground leading-relaxed">
-                Transform your development workflow with intelligent code completion, 
-                automated debugging, and seamless collaboration tools.
-              </p>
+               <h2 className="text-5xl font-bold leading-tight">
+                 Build Code That Gets the{" "}
+                 <span className="bg-gradient-primary bg-clip-text text-transparent">
+                   Thumbs Up
+                 </span>
+               </h2>
+               <p className="text-xl text-muted-foreground leading-relaxed">
+                 Create exceptional software with our AI-powered development environment. 
+                 Where quality code meets developer approval.
+               </p>
             </div>
 
             {/* Benefits */}
@@ -111,9 +110,9 @@ const Index = () => {
                     <Code className="w-8 h-8 text-white" />
                   </div>
                 </div>
-                <CardTitle className="text-2xl">Welcome to CodeCraft AI</CardTitle>
+                <CardTitle className="text-2xl">Welcome to ThumbsUp Dev</CardTitle>
                 <CardDescription>
-                  Sign in to start coding with AI assistance
+                  Build code that earns approval
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -193,11 +192,11 @@ const Index = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Brain className="w-5 h-5 text-primary" />
-              <span className="font-semibold">CodeCraft AI</span>
+              <span className="font-semibold">ThumbsUp Dev</span>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Built for developers who demand excellence
-            </p>
+             <p className="text-sm text-muted-foreground">
+               Where great code gets the thumbs up
+             </p>
           </div>
         </div>
       </footer>
