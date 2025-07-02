@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Brain, Code, Users, GitBranch, Settings, LogOut, UserPlus, Share2, Eye } from "lucide-react";
+import { Brain, Code, Users, GitBranch, Settings, LogOut, UserPlus, Share2, Eye, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useMockAuth } from "@/hooks/useMockAuth";
 import { useProjectPresence } from "@/hooks/useProjectPresence";
 import PresenceIndicator from "@/components/PresenceIndicator";
+import CollaborationCalendar from "@/components/CollaborationCalendar";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -23,6 +24,7 @@ const Dashboard = () => {
   const [inviteRole, setInviteRole] = useState("developer");
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [projectMembers, setProjectMembers] = useState<any[]>([]);
 
   // Real-time presence for selected project
   const { presenceUsers, isConnected, updateCursorPosition } = useProjectPresence(
@@ -48,6 +50,29 @@ const Dashboard = () => {
       loadProjects();
     }
   }, [user]);
+
+  // Load project members when project is selected
+  useEffect(() => {
+    if (selectedProject) {
+      loadProjectMembers();
+    }
+  }, [selectedProject]);
+
+  const loadProjectMembers = async () => {
+    if (!selectedProject) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('project_members')
+        .select('*')
+        .eq('project_id', selectedProject);
+
+      if (error) throw error;
+      setProjectMembers(data || []);
+    } catch (error) {
+      console.error('Error loading project members:', error);
+    }
+  };
 
   const loadProjects = async () => {
     if (!user) return;
@@ -353,6 +378,17 @@ const Dashboard = () => {
               </Card>
             ))}
           </div>
+
+          {/* Calendar Section - Only show when project is selected */}
+          {selectedProject && (
+            <div className="mt-8">
+              <CollaborationCalendar 
+                selectedProject={selectedProject}
+                currentUserId={user?.id || ''}
+                projectMembers={projectMembers}
+              />
+            </div>
+          )}
 
           {/* Empty state */}
           {projects.length === 0 && (
