@@ -13,6 +13,7 @@ import PresenceIndicator from "@/components/PresenceIndicator";
 import CollaborationCalendar from "@/components/CollaborationCalendar";
 import OntologyTemplateManager from "@/components/OntologyTemplateManager";
 import SemanticArchitectureDesigner from "@/components/SemanticArchitectureDesigner";
+import OntologyDatabaseDesigner from "@/components/OntologyDatabaseDesigner";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -238,6 +239,7 @@ const Dashboard = () => {
             <TabsTrigger value="calendar">Calendar</TabsTrigger>
             <TabsTrigger value="templates">Ontology Templates</TabsTrigger>
             <TabsTrigger value="architecture">Architecture Designer</TabsTrigger>
+            <TabsTrigger value="database">Database Designer</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
@@ -464,6 +466,10 @@ const Dashboard = () => {
 
           <TabsContent value="architecture">
             <SemanticArchitectureDesigner />
+          </TabsContent>
+
+          <TabsContent value="database">
+            <OntologyDatabaseDesigner />
           </TabsContent>
         </Tabs>
       </div>
