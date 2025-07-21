@@ -15,6 +15,7 @@ import OntologyTemplateManager from "@/components/OntologyTemplateManager";
 import SemanticArchitectureDesigner from "@/components/SemanticArchitectureDesigner";
 import OntologyDatabaseDesigner from "@/components/OntologyDatabaseDesigner";
 import { VSCodeEditor } from "@/components/VSCodeEditor";
+import { AudioOS } from "@/components/AudioOS";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -242,6 +243,7 @@ const Dashboard = () => {
             <TabsTrigger value="architecture">Architecture Designer</TabsTrigger>
             <TabsTrigger value="database">Database Designer</TabsTrigger>
             <TabsTrigger value="ide">IDE & GitHub</TabsTrigger>
+            <TabsTrigger value="audio-os">Audio OS</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
@@ -477,6 +479,12 @@ const Dashboard = () => {
           <TabsContent value="ide">
             <div className="h-[calc(100vh-8rem)] border rounded-lg overflow-hidden">
               <VSCodeEditor />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="audio-os">
+            <div className="h-[calc(100vh-8rem)]">
+              <AudioOS />
             </div>
           </TabsContent>
         </Tabs>
