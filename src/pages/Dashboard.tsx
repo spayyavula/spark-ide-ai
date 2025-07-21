@@ -33,6 +33,7 @@ const Dashboard = () => {
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [projectMembers, setProjectMembers] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState("overview");
 
   // Real-time presence for selected project
   const { presenceUsers, isConnected, updateCursorPosition } = useProjectPresence(
@@ -40,17 +41,35 @@ const Dashboard = () => {
     user ? { id: user.id, name: user.name } : null
   );
 
-  // Track mouse movement for cursor position
+  // Track mouse movement for cursor position - only when NOT on Audio OS tab
   useEffect(() => {
+    // Don't track mouse movement on Audio OS tab to prevent interference
+    if (activeTab === 'audio-os') {
+      console.log('Audio OS tab active - disabling presence tracking');
+      return;
+    }
+
+    let mouseThrottle: NodeJS.Timeout;
+    
     const handleMouseMove = (e: MouseEvent) => {
       if (selectedProject && user) {
-        updateCursorPosition(e.clientX, e.clientY);
+        // Throttle mouse movement updates to prevent performance issues
+        clearTimeout(mouseThrottle);
+        mouseThrottle = setTimeout(() => {
+          updateCursorPosition(e.clientX, e.clientY);
+        }, 100); // Update at most every 100ms
       }
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    return () => document.removeEventListener('mousemove', handleMouseMove);
-  }, [selectedProject, user, updateCursorPosition]);
+    console.log('Setting up mouse tracking for presence');
+    document.addEventListener('mousemove', handleMouseMove, { passive: true });
+    
+    return () => {
+      console.log('Cleaning up mouse tracking');
+      document.removeEventListener('mousemove', handleMouseMove);
+      clearTimeout(mouseThrottle);
+    };
+  }, [selectedProject, user, updateCursorPosition, activeTab]);
 
   // Load user's projects
   useEffect(() => {
@@ -221,7 +240,7 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gradient-glow">
       {/* Debug info */}
       <div className="fixed top-0 left-0 bg-black text-white p-2 text-xs z-50">
-        User: {user ? `${user.name} (${user.id})` : 'Not logged in'}
+        User: {user ? `${user.name} (${user.id})` : 'Not logged in'} | Tab: {activeTab} | Tracking: {activeTab !== 'audio-os' ? 'ON' : 'OFF'}
       </div>
       
       {/* Header */}
@@ -248,8 +267,8 @@ const Dashboard = () => {
         </div>
       </header>
 
-      {/* Show presence indicator if project is selected */}
-      {selectedProject && (
+      {/* Show presence indicator if project is selected and not on Audio OS */}
+      {selectedProject && activeTab !== 'audio-os' && (
         <PresenceIndicator 
           presenceUsers={presenceUsers}
           isConnected={isConnected}
@@ -259,7 +278,7 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="overview" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="recent">Recent Projects</TabsTrigger>

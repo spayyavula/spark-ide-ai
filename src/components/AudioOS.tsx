@@ -1,6 +1,6 @@
+
 import { useState, useEffect, useRef } from "react";
 import { logger } from '@/utils/logger';
-import { supabase } from '@/integrations/supabase/client';
 
 // Web Speech API type declarations
 declare global {
@@ -86,6 +86,8 @@ export const AudioOS = () => {
 
   // Initialize speech APIs
   useEffect(() => {
+    console.log('Audio OS initializing...');
+    
     if ('speechSynthesis' in window) {
       speechSynthesisRef.current = window.speechSynthesis;
     }
@@ -125,13 +127,27 @@ export const AudioOS = () => {
         };
         
         speechRecognitionRef.current.onend = () => {
+          console.log('Speech recognition ended');
           setIsListening(false);
         };
       }
     }
+
+    // Cleanup on unmount
+    return () => {
+      console.log('Audio OS cleaning up...');
+      if (speechRecognitionRef.current) {
+        speechRecognitionRef.current.stop();
+      }
+      if (speechSynthesisRef.current) {
+        speechSynthesisRef.current.cancel();
+      }
+    };
   }, []);
 
   const connectToAudioOS = async () => {
+    console.log('Attempting to connect to Audio OS...');
+    
     try {
       // Check if we're on HTTPS or localhost
       const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
@@ -157,7 +173,9 @@ export const AudioOS = () => {
       // Check microphone permissions
       try {
         await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log('Microphone access granted');
       } catch (micError) {
+        console.error('Microphone access denied:', micError);
         toast({
           title: "Microphone Access Denied",
           description: "Please allow microphone access and try again.",
@@ -167,13 +185,17 @@ export const AudioOS = () => {
       }
 
       setIsConnected(true);
+      console.log('Audio OS connected successfully');
+      
       toast({
         title: "Audio OS Connected",
         description: "ARIA is ready! Try saying 'Hello' or 'What time is it?'",
       });
       
       // Auto-start listening after connecting
-      await startListening();
+      setTimeout(() => {
+        startListening();
+      }, 500); // Small delay to ensure connection is stable
       
     } catch (error) {
       logger.error('Error initializing Audio OS:', error);
@@ -186,6 +208,8 @@ export const AudioOS = () => {
   };
 
   const startListening = async () => {
+    console.log('Starting speech recognition...');
+    
     try {
       if (!speechRecognitionRef.current) {
         toast({
@@ -199,13 +223,21 @@ export const AudioOS = () => {
       // Request microphone permission explicitly
       await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      speechRecognitionRef.current.start();
-      setIsListening(true);
+      // Ensure previous recognition is stopped
+      speechRecognitionRef.current.stop();
       
-      toast({
-        title: "Listening Started",
-        description: "Speak now - I'm listening!",
-      });
+      // Small delay before starting
+      setTimeout(() => {
+        speechRecognitionRef.current.start();
+        setIsListening(true);
+        console.log('Speech recognition started');
+        
+        toast({
+          title: "Listening Started",
+          description: "Speak now - I'm listening!",
+        });
+      }, 100);
+      
     } catch (error) {
       logger.error('Error starting speech recognition:', error);
       setIsConnected(false); // Reset connection status on error
@@ -233,6 +265,7 @@ export const AudioOS = () => {
   };
 
   const stopListening = () => {
+    console.log('Stopping speech recognition...');
     if (speechRecognitionRef.current) {
       speechRecognitionRef.current.stop();
     }
@@ -253,15 +286,20 @@ export const AudioOS = () => {
   };
 
   const speak = (text: string) => {
+    console.log('Speaking:', text);
     if (speechSynthesisRef.current) {
       setIsSpeaking(true);
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.onend = () => setIsSpeaking(false);
+      utterance.onend = () => {
+        console.log('Speech ended');
+        setIsSpeaking(false);
+      };
       speechSynthesisRef.current.speak(utterance);
     }
   };
 
   const handleVoiceCommand = (command: string) => {
+    console.log('Processing voice command:', command);
     const lowerCommand = command.toLowerCase();
     
     const action: SystemAction = {
@@ -323,6 +361,7 @@ export const AudioOS = () => {
   };
 
   const openApplication = (appName: string) => {
+    console.log('Opening application:', appName);
     setApplications(prev => prev.map(app => {
       if (app.name.toLowerCase().includes(appName.toLowerCase()) || 
           app.id.toLowerCase().includes(appName.toLowerCase())) {
@@ -333,6 +372,7 @@ export const AudioOS = () => {
   };
 
   const adjustSystemSetting = (setting: string, value: string) => {
+    console.log('Adjusting system setting:', setting, value);
     switch (setting) {
       case 'volume':
         if (value.includes('up') || value.includes('increase')) {
@@ -359,16 +399,8 @@ export const AudioOS = () => {
     }
   };
 
-  const controlMedia = (action: string) => {
-    // Mock media control
-    logger.debug('Media control:', action);
-    toast({
-      title: "Media Control",
-      description: `Media ${action} executed`,
-    });
-  };
-
   const disconnect = () => {
+    console.log('Disconnecting Audio OS...');
     stopListening();
     setIsConnected(false);
     if (speechSynthesisRef.current) {
@@ -376,11 +408,33 @@ export const AudioOS = () => {
     }
   };
 
+  // Prevent event bubbling and ensure clicks work properly
+  const handleCardClick = (e: React.MouseEvent, callback?: () => void) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Card clicked');
+    if (callback) {
+      callback();
+    }
+  };
+
+  const handleButtonClick = (e: React.MouseEvent, callback: () => void) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Button clicked');
+    callback();
+  };
+
   return (
-    <div className={cn(
-      "min-h-screen transition-all duration-500",
-      isDarkMode ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"
-    )}>
+    <div 
+      className={cn(
+        "min-h-screen transition-all duration-500 select-none",
+        isDarkMode ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"
+      )}
+      onMouseDown={(e) => e.stopPropagation()}
+      onMouseMove={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+    >
       {/* Desktop Wallpaper */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-purple-700 to-pink-600 opacity-20"></div>
       
@@ -438,7 +492,7 @@ export const AudioOS = () => {
             <CardContent>
               <div className="flex items-center justify-center gap-6">
                 <Button
-                  onClick={toggleListening}
+                  onClick={(e) => handleButtonClick(e, toggleListening)}
                   size="lg"
                   className={cn(
                     "w-20 h-20 rounded-full transition-all duration-300",
@@ -469,7 +523,7 @@ export const AudioOS = () => {
 
                 {isConnected && (
                   <Button
-                    onClick={disconnect}
+                    onClick={(e) => handleButtonClick(e, disconnect)}
                     variant="outline"
                     size="lg"
                   >
@@ -498,7 +552,7 @@ export const AudioOS = () => {
                           ? "border-blue-500 bg-blue-500/10" 
                           : isDarkMode ? "border-gray-600 hover:border-gray-500" : "border-gray-300 hover:border-gray-400"
                       )}
-                      onClick={() => openApplication(app.name)}
+                      onClick={(e) => handleCardClick(e, () => openApplication(app.name))}
                     >
                       {app.icon}
                       <span className="text-xs">{app.name}</span>
@@ -536,7 +590,7 @@ export const AudioOS = () => {
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => setIsDarkMode(!isDarkMode)}
+                    onClick={(e) => handleButtonClick(e, () => setIsDarkMode(!isDarkMode))}
                   >
                     {isDarkMode ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
                   </Button>
