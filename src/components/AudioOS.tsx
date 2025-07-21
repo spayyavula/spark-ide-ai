@@ -508,10 +508,7 @@ export const AudioOS = () => {
                   </div>
                   
                   {transcript && (
-                    <div className={cn(
-                      "p-3 rounded-lg text-sm",
-                      isDarkMode ? "bg-gray-700" : "bg-gray-100"
-                    )}>
+                    <div className="p-3 rounded-lg text-sm bg-muted">
                       <strong>You said:</strong> {transcript}
                     </div>
                   )}
@@ -533,7 +530,7 @@ export const AudioOS = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Applications */}
-            <Card className={isDarkMode ? "bg-gray-800" : "bg-white"}>
+            <Card className="bg-card">
               <CardHeader>
                 <CardTitle>Applications</CardTitle>
               </CardHeader>
@@ -545,14 +542,14 @@ export const AudioOS = () => {
                       className={cn(
                         "flex flex-col items-center gap-2 p-3 rounded-lg border cursor-pointer transition-all",
                         app.isOpen 
-                          ? "border-blue-500 bg-blue-500/10" 
-                          : isDarkMode ? "border-gray-600 hover:border-gray-500" : "border-gray-300 hover:border-gray-400"
+                          ? "border-primary bg-primary/10" 
+                          : "border-border hover:border-primary/50"
                       )}
                       onClick={(e) => handleCardClick(e, () => openApplication(app.name))}
                     >
                       {app.icon}
                       <span className="text-xs">{app.name}</span>
-                      {app.isOpen && <div className="w-1 h-1 bg-blue-500 rounded-full"></div>}
+                      {app.isOpen && <div className="w-1 h-1 bg-primary rounded-full"></div>}
                     </div>
                   ))}
                 </div>
@@ -560,7 +557,7 @@ export const AudioOS = () => {
             </Card>
 
             {/* System Settings */}
-            <Card className={isDarkMode ? "bg-gray-800" : "bg-white"}>
+            <Card className="bg-card">
               <CardHeader>
                 <CardTitle>System Settings</CardTitle>
               </CardHeader>
@@ -595,7 +592,7 @@ export const AudioOS = () => {
             </Card>
 
             {/* Recent Actions */}
-            <Card className={isDarkMode ? "bg-gray-800" : "bg-white"}>
+            <Card className="bg-card">
               <CardHeader>
                 <CardTitle>Recent Actions</CardTitle>
               </CardHeader>
@@ -604,10 +601,7 @@ export const AudioOS = () => {
                   {systemActions.map((action, index) => (
                     <div
                       key={index}
-                      className={cn(
-                        "p-2 rounded text-xs",
-                        isDarkMode ? "bg-gray-700" : "bg-gray-100"
-                      )}
+                      className="p-2 rounded text-xs bg-muted"
                     >
                       <div className="font-medium">{action.action}</div>
                       <div className="text-muted-foreground">
@@ -626,7 +620,7 @@ export const AudioOS = () => {
           </div>
 
           {/* Quick Commands Help */}
-          <Card className={cn("mt-8", isDarkMode ? "bg-gray-800" : "bg-white")}>
+          <Card className="mt-8 bg-card">
             <CardHeader>
               <CardTitle>Voice Commands</CardTitle>
             </CardHeader>
