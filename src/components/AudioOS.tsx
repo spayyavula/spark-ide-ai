@@ -429,7 +429,7 @@ export const AudioOS = () => {
     <div 
       className={cn(
         "min-h-screen transition-all duration-500 select-none",
-        isDarkMode ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"
+        "bg-background text-foreground"
       )}
       onMouseDown={(e) => e.stopPropagation()}
       onMouseMove={(e) => e.stopPropagation()}
@@ -439,10 +439,7 @@ export const AudioOS = () => {
       <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-purple-700 to-pink-600 opacity-20"></div>
       
       {/* Status Bar */}
-      <div className={cn(
-        "fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-2 border-b backdrop-blur-sm",
-        isDarkMode ? "bg-gray-900/80 border-gray-700" : "bg-white/80 border-gray-200"
-      )}>
+      <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-2 border-b backdrop-blur-sm bg-background/80 border-border">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-blue-500" />
@@ -479,9 +476,8 @@ export const AudioOS = () => {
         <div className="max-w-6xl mx-auto">
           {/* Voice Control Center */}
           <Card className={cn(
-            "mb-8 border-2 transition-colors",
-            isDarkMode ? "bg-gray-800 border-gray-600" : "bg-white border-gray-300",
-            isListening && "border-blue-500 shadow-lg shadow-blue-500/20"
+            "mb-8 border-2 transition-colors bg-card border-border",
+            isListening && "border-primary shadow-glow"
           )}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
