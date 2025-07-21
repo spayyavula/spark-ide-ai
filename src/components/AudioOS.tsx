@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { logger } from '@/utils/logger';
+import { supabase } from '@/integrations/supabase/client';
 
 // Web Speech API type declarations
 declare global {
@@ -118,7 +120,7 @@ export const AudioOS = () => {
         };
         
         speechRecognitionRef.current.onerror = (event) => {
-          console.error('Speech recognition error:', event.error);
+          logger.error('Speech recognition error:', event.error);
           setIsListening(false);
         };
         
@@ -150,7 +152,7 @@ export const AudioOS = () => {
       await startListening();
       
     } catch (error) {
-      console.error('Error initializing Audio OS:', error);
+      logger.error('Error initializing Audio OS:', error);
       toast({
         title: "Initialization Error",
         description: "Failed to initialize Audio OS",
@@ -167,7 +169,7 @@ export const AudioOS = () => {
       speechRecognitionRef.current.start();
       setIsListening(true);
     } catch (error) {
-      console.error('Error starting speech recognition:', error);
+      logger.error('Error starting speech recognition:', error);
       toast({
         title: "Microphone Error",
         description: "Failed to access microphone",
@@ -305,7 +307,7 @@ export const AudioOS = () => {
 
   const controlMedia = (action: string) => {
     // Mock media control
-    console.log('Media control:', action);
+    logger.debug('Media control:', action);
     toast({
       title: "Media Control",
       description: `Media ${action} executed`,

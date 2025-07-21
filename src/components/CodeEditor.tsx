@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Play, Save, Download, Maximize2, Copy, Check, Code } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { logger } from '@/utils/logger';
 import { cn } from "@/lib/utils";
 import Editor from '@monaco-editor/react';
 
@@ -19,15 +20,15 @@ export const Editor: React.FC<EditorProps> = ({ theme, language }) => {
 
   useEffect(() => {
     // Initialize editor with syntax highlighting
-    console.log('Editor initialized with', { theme, language });
+    logger.debug('Editor initialized with', { theme, language });
   }, [theme, language]);
 
   const handleSave = async () => {
     try {
       await saveCode(code);
-      console.log('Code saved successfully');
+      logger.debug('Code saved successfully');
     } catch (error) {
-      console.error('Failed to save code:', error);
+      logger.error('Failed to save code:', error);
     }
   };
 
@@ -95,6 +96,7 @@ class AICodeAssistant:
 async def handle_payment(user_id: str, plan: str):
     """Handle Stripe subscription for premium AI features"""
     import stripe
+    # Use secure environment variables in production
     stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
     
     try:

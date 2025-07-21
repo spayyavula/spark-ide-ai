@@ -162,7 +162,8 @@ This enables real-time collaborative coding!`;
 \`\`\`typescript
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+// Use Supabase Edge Function with secret management
+const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!);
 
 // Create subscription plans
 export const createSubscription = async (customerId: string, priceId: string) => {
@@ -196,7 +197,8 @@ class AIService {
   private openai: OpenAI;
   
   constructor() {
-    this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    // Use Supabase Edge Function with secret management
+    this.openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY') });
   }
   
   async generateCode(prompt: string, language: string) {

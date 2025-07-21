@@ -18,6 +18,8 @@ import { VSCodeEditor } from "@/components/VSCodeEditor";
 import { AudioOS } from "@/components/AudioOS";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { logger } from '@/utils/logger';
+import { validateProjectName, sanitizeInput, rateLimiter } from '@/utils/inputValidation';
 
 const Dashboard = () => {
   const { user, logout } = useMockAuth();
@@ -76,17 +78,17 @@ const Dashboard = () => {
       if (error) throw error;
       setProjectMembers(data || []);
     } catch (error) {
-      console.error('Error loading project members:', error);
+      logger.error('Error loading project members:', error);
     }
   };
 
   const loadProjects = async () => {
     if (!user) return;
 
-    console.log('Loading projects for user:', user);
+    logger.debug('Loading projects for user:', user);
 
     try {
-      console.log('About to query projects table...');
+      logger.debug('About to query projects table...');
       const { data, error } = await supabase
         .from('projects')
         .select('*')
@@ -123,7 +125,7 @@ const Dashboard = () => {
         setProjects(data);
       }
     } catch (error) {
-      console.error('Error loading projects:', error);
+      logger.error('Error loading projects:', error);
       toast({
         title: "Error loading projects",
         description: "There was an issue loading your projects. Please try again.",
@@ -135,15 +137,38 @@ const Dashboard = () => {
   const createProject = async () => {
     if (!user || !newProjectName.trim()) return;
 
-    console.log('Creating project with user:', user);
-    console.log('Project data:', { name: newProjectName, description: newProjectDescription, owner_id: user.id });
+    // Input validation
+    const sanitizedName = sanitizeInput(newProjectName);
+    const sanitizedDescription = sanitizeInput(newProjectDescription);
+    
+    if (!validateProjectName(sanitizedName)) {
+      toast({
+        title: "Invalid Project Name",
+        description: "Project name must be 1-100 characters and contain only letters, numbers, spaces, hyphens, and underscores.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Rate limiting
+    if (!rateLimiter(`create-project-${user.id}`, 5, 60000)) {
+      toast({
+        title: "Rate Limit Exceeded",
+        description: "Please wait before creating another project.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    logger.debug('Creating project with user:', user);
+    logger.debug('Project data:', { name: sanitizedName, description: sanitizedDescription, owner_id: user.id });
 
     try {
       const { data, error } = await supabase
         .from('projects')
         .insert({
-          name: newProjectName,
-          description: newProjectDescription,
+          name: sanitizedName,
+          description: sanitizedDescription,
           owner_id: user.id
         })
         .select()
@@ -158,10 +183,10 @@ const Dashboard = () => {
       
       toast({
         title: "Project created",
-        description: `"${newProjectName}" has been created successfully.`
+        description: `"${sanitizedName}" has been created successfully.`
       });
     } catch (error) {
-      console.error('Error creating project:', error);
+      logger.error('Error creating project:', error);
       toast({
         title: "Error creating project",
         description: "There was an issue creating your project. Please try again.",

@@ -105,7 +105,10 @@ export const GitHubManager = ({ onImportCode }: GitHubManagerProps) => {
       };
 
       setGithubConnection(connection);
-      localStorage.setItem('github-connection', JSON.stringify(connection));
+      // Store connection info without sensitive token
+      const safeConnection = { ...connection };
+      delete safeConnection.token;
+      localStorage.setItem('github-connection', JSON.stringify(safeConnection));
       
       toast({
         title: "Connected to GitHub",
