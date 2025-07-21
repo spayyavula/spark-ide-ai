@@ -14,7 +14,7 @@ import CollaborationCalendar from "@/components/CollaborationCalendar";
 import OntologyTemplateManager from "@/components/OntologyTemplateManager";
 import SemanticArchitectureDesigner from "@/components/SemanticArchitectureDesigner";
 import OntologyDatabaseDesigner from "@/components/OntologyDatabaseDesigner";
-import { EnhancedCodeEditor } from "@/components/EnhancedCodeEditor";
+import { VSCodeEditor } from "@/components/VSCodeEditor";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -475,8 +475,8 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="ide">
-            <div className="h-[calc(100vh-12rem)]">
-              <EnhancedCodeEditor />
+            <div className="h-[calc(100vh-8rem)] border rounded-lg overflow-hidden">
+              <VSCodeEditor />
             </div>
           </TabsContent>
         </Tabs>
