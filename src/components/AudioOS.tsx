@@ -133,10 +133,34 @@ export const AudioOS = () => {
 
   const connectToAudioOS = async () => {
     try {
+      // Check if we're on HTTPS or localhost
+      const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+      if (!isSecure) {
+        toast({
+          title: "HTTPS Required",
+          description: "Voice features require HTTPS. Please use the published version of your app.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Check browser support
       if (!speechRecognitionRef.current) {
         toast({
           title: "Not Supported",
-          description: "Speech recognition is not supported in this browser",
+          description: "Speech recognition is not supported in this browser. Try Chrome or Edge.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Check microphone permissions
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (micError) {
+        toast({
+          title: "Microphone Access Denied",
+          description: "Please allow microphone access and try again.",
           variant: "destructive"
         });
         return;
@@ -144,8 +168,8 @@ export const AudioOS = () => {
 
       setIsConnected(true);
       toast({
-        title: "Audio OS Ready",
-        description: "ARIA is ready to assist you. Try saying commands like 'open files' or 'increase volume'.",
+        title: "Audio OS Connected",
+        description: "ARIA is ready! Try saying 'Hello' or 'What time is it?'",
       });
       
       // Auto-start listening after connecting
@@ -154,8 +178,8 @@ export const AudioOS = () => {
     } catch (error) {
       logger.error('Error initializing Audio OS:', error);
       toast({
-        title: "Initialization Error",
-        description: "Failed to initialize Audio OS",
+        title: "Connection Failed",
+        description: `Failed to connect: ${error.message}`,
         variant: "destructive"
       });
     }
@@ -163,18 +187,48 @@ export const AudioOS = () => {
 
   const startListening = async () => {
     try {
-      if (!speechRecognitionRef.current) return;
+      if (!speechRecognitionRef.current) {
+        toast({
+          title: "Speech Recognition Error", 
+          description: "Speech recognition not available",
+          variant: "destructive"
+        });
+        return;
+      }
       
+      // Request microphone permission explicitly
       await navigator.mediaDevices.getUserMedia({ audio: true });
+      
       speechRecognitionRef.current.start();
       setIsListening(true);
+      
+      toast({
+        title: "Listening Started",
+        description: "Speak now - I'm listening!",
+      });
     } catch (error) {
       logger.error('Error starting speech recognition:', error);
-      toast({
-        title: "Microphone Error",
-        description: "Failed to access microphone",
-        variant: "destructive"
-      });
+      setIsConnected(false); // Reset connection status on error
+      
+      if (error.name === 'NotAllowedError') {
+        toast({
+          title: "Microphone Permission Denied",
+          description: "Please allow microphone access in your browser settings.",
+          variant: "destructive"
+        });
+      } else if (error.name === 'NotFoundError') {
+        toast({
+          title: "No Microphone Found",
+          description: "Please connect a microphone and try again.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Audio Error",
+          description: `Failed to start listening: ${error.message}`,
+          variant: "destructive"
+        });
+      }
     }
   };
 
