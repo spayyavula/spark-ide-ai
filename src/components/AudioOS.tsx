@@ -146,6 +146,9 @@ export const AudioOS = () => {
         description: "ARIA is ready to assist you. Try saying commands like 'open files' or 'increase volume'.",
       });
       
+      // Auto-start listening after connecting
+      await startListening();
+      
     } catch (error) {
       console.error('Error initializing Audio OS:', error);
       toast({
