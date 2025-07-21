@@ -1,4 +1,12 @@
 import { useState, useEffect, useRef } from "react";
+
+// Web Speech API type declarations
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
 import { 
   Mic, 
   MicOff, 
@@ -23,7 +31,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { AudioRecorder, encodeAudioForAPI, playAudioData } from "@/utils/AudioRecorder";
+
 import { cn } from "@/lib/utils";
 
 interface SystemAction {
@@ -54,9 +62,8 @@ export const AudioOS = () => {
   const [batteryLevel, setBatteryLevel] = useState(88);
   const [isCharging, setIsCharging] = useState(false);
   
-  const wsRef = useRef<WebSocket | null>(null);
-  const audioRecorderRef = useRef<AudioRecorder | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
+  const speechRecognitionRef = useRef<any>(null);
+  const speechSynthesisRef = useRef<SpeechSynthesis | null>(null);
 
   // Mock applications
   const [applications, setApplications] = useState<OSApplication[]>([
@@ -75,121 +82,100 @@ export const AudioOS = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Initialize audio context
+  // Initialize speech APIs
   useEffect(() => {
-    if (!audioContextRef.current) {
-      audioContextRef.current = new AudioContext();
+    if ('speechSynthesis' in window) {
+      speechSynthesisRef.current = window.speechSynthesis;
+    }
+    
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      speechRecognitionRef.current = new SpeechRecognition();
+      
+      if (speechRecognitionRef.current) {
+        speechRecognitionRef.current.continuous = true;
+        speechRecognitionRef.current.interimResults = true;
+        speechRecognitionRef.current.lang = 'en-US';
+        
+        speechRecognitionRef.current.onresult = (event) => {
+          let finalTranscript = '';
+          let interimTranscript = '';
+          
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript;
+            } else {
+              interimTranscript += transcript;
+            }
+          }
+          
+          setTranscript(interimTranscript || finalTranscript);
+          
+          if (finalTranscript) {
+            handleVoiceCommand(finalTranscript.trim());
+          }
+        };
+        
+        speechRecognitionRef.current.onerror = (event) => {
+          console.error('Speech recognition error:', event.error);
+          setIsListening(false);
+        };
+        
+        speechRecognitionRef.current.onend = () => {
+          setIsListening(false);
+        };
+      }
     }
   }, []);
 
   const connectToAudioOS = async () => {
     try {
-      // Request microphone permission first
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-      
-      const wsUrl = 'wss://jbfvlqpbqztnbtiqvmxd.supabase.co/functions/v1/realtime-audio-os';
-      wsRef.current = new WebSocket(wsUrl);
-
-      wsRef.current.onopen = () => {
-        console.log('Connected to Audio OS');
-        setIsConnected(true);
+      if (!speechRecognitionRef.current) {
         toast({
-          title: "Audio OS Connected",
-          description: "ARIA is ready to assist you. Try saying 'Hello ARIA' to get started.",
-        });
-      };
-
-      wsRef.current.onmessage = async (event) => {
-        const data = JSON.parse(event.data);
-        console.log('Received from Audio OS:', data);
-
-        if (data.type === 'session.created') {
-          console.log('Session created, starting audio recorder...');
-          startAudioRecording();
-        } else if (data.type === 'response.audio.delta') {
-          // Play audio response
-          setIsSpeaking(true);
-          const binaryString = atob(data.delta);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-          }
-          if (audioContextRef.current) {
-            await playAudioData(audioContextRef.current, bytes);
-          }
-        } else if (data.type === 'response.audio.done') {
-          setIsSpeaking(false);
-        } else if (data.type === 'conversation.item.input_audio_transcription.completed') {
-          setTranscript(data.transcript);
-        } else if (data.type === 'response.function_call_arguments.done') {
-          // Handle system actions
-          const result = JSON.parse(data.arguments);
-          handleSystemAction(result);
-        } else if (data.type === 'error') {
-          toast({
-            title: "Audio OS Error",
-            description: data.message,
-            variant: "destructive"
-          });
-        }
-      };
-
-      wsRef.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        toast({
-          title: "Connection Error",
-          description: "Failed to connect to Audio OS",
+          title: "Not Supported",
+          description: "Speech recognition is not supported in this browser",
           variant: "destructive"
         });
-      };
+        return;
+      }
 
-      wsRef.current.onclose = () => {
-        console.log('Disconnected from Audio OS');
-        setIsConnected(false);
-        setIsListening(false);
-        setIsSpeaking(false);
-        stopAudioRecording();
-      };
-
-    } catch (error) {
-      console.error('Error connecting to Audio OS:', error);
+      setIsConnected(true);
       toast({
-        title: "Permission Denied",
-        description: "Microphone access is required for Audio OS",
+        title: "Audio OS Ready",
+        description: "ARIA is ready to assist you. Try saying commands like 'open files' or 'increase volume'.",
+      });
+      
+    } catch (error) {
+      console.error('Error initializing Audio OS:', error);
+      toast({
+        title: "Initialization Error",
+        description: "Failed to initialize Audio OS",
         variant: "destructive"
       });
     }
   };
 
-  const startAudioRecording = async () => {
+  const startListening = async () => {
     try {
-      audioRecorderRef.current = new AudioRecorder((audioData) => {
-        if (wsRef.current?.readyState === WebSocket.OPEN && isListening) {
-          const base64Audio = encodeAudioForAPI(audioData);
-          const audioEvent = {
-            type: 'input_audio_buffer.append',
-            audio: base64Audio
-          };
-          wsRef.current.send(JSON.stringify(audioEvent));
-        }
-      });
-
-      await audioRecorderRef.current.start();
+      if (!speechRecognitionRef.current) return;
+      
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      speechRecognitionRef.current.start();
       setIsListening(true);
     } catch (error) {
-      console.error('Error starting audio recording:', error);
+      console.error('Error starting speech recognition:', error);
       toast({
-        title: "Recording Error",
-        description: "Failed to start audio recording",
+        title: "Microphone Error",
+        description: "Failed to access microphone",
         variant: "destructive"
       });
     }
   };
 
-  const stopAudioRecording = () => {
-    if (audioRecorderRef.current) {
-      audioRecorderRef.current.stop();
-      audioRecorderRef.current = null;
+  const stopListening = () => {
+    if (speechRecognitionRef.current) {
+      speechRecognitionRef.current.stop();
     }
     setIsListening(false);
   };
@@ -201,36 +187,79 @@ export const AudioOS = () => {
     }
 
     if (isListening) {
-      audioRecorderRef.current?.pause();
-      setIsListening(false);
+      stopListening();
     } else {
-      audioRecorderRef.current?.resume();
-      setIsListening(true);
+      startListening();
     }
   };
 
-  const handleSystemAction = (actionData: any) => {
+  const speak = (text: string) => {
+    if (speechSynthesisRef.current) {
+      setIsSpeaking(true);
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.onend = () => setIsSpeaking(false);
+      speechSynthesisRef.current.speak(utterance);
+    }
+  };
+
+  const handleVoiceCommand = (command: string) => {
+    const lowerCommand = command.toLowerCase();
+    
     const action: SystemAction = {
-      action: actionData.action,
-      data: actionData.data,
+      action: 'voice_command',
+      data: { command },
       timestamp: Date.now()
     };
-
     setSystemActions(prev => [action, ...prev.slice(0, 9)]);
 
-    // Execute the action based on type
-    switch (actionData.action) {
-      case 'open_app':
-        openApplication(actionData.data.app);
-        break;
-      case 'adjust_settings':
-        adjustSystemSetting(actionData.data.setting, actionData.data.value);
-        break;
-      case 'control_media':
-        controlMedia(actionData.data.action);
-        break;
-      default:
-        console.log('System action:', actionData);
+    // Process different command types
+    if (lowerCommand.includes('open') || lowerCommand.includes('launch')) {
+      if (lowerCommand.includes('file')) {
+        openApplication('files');
+        speak('Opening Files application');
+      } else if (lowerCommand.includes('music')) {
+        openApplication('music');
+        speak('Opening Music application');
+      } else if (lowerCommand.includes('calendar')) {
+        openApplication('calendar');
+        speak('Opening Calendar application');
+      } else if (lowerCommand.includes('settings')) {
+        openApplication('settings');
+        speak('Opening Settings application');
+      } else if (lowerCommand.includes('messages')) {
+        openApplication('messages');
+        speak('Opening Messages application');
+      }
+    } else if (lowerCommand.includes('volume')) {
+      if (lowerCommand.includes('up') || lowerCommand.includes('increase')) {
+        adjustSystemSetting('volume', 'up');
+        speak('Volume increased');
+      } else if (lowerCommand.includes('down') || lowerCommand.includes('decrease')) {
+        adjustSystemSetting('volume', 'down');
+        speak('Volume decreased');
+      }
+    } else if (lowerCommand.includes('brightness')) {
+      if (lowerCommand.includes('up') || lowerCommand.includes('increase')) {
+        adjustSystemSetting('brightness', 'up');
+        speak('Brightness increased');
+      } else if (lowerCommand.includes('down') || lowerCommand.includes('decrease')) {
+        adjustSystemSetting('brightness', 'down');
+        speak('Brightness decreased');
+      }
+    } else if (lowerCommand.includes('dark mode')) {
+      if (lowerCommand.includes('on') || lowerCommand.includes('enable')) {
+        setIsDarkMode(true);
+        speak('Dark mode enabled');
+      } else if (lowerCommand.includes('off') || lowerCommand.includes('disable')) {
+        setIsDarkMode(false);
+        speak('Dark mode disabled');
+      }
+    } else if (lowerCommand.includes('time')) {
+      speak(`The current time is ${currentTime.toLocaleTimeString()}`);
+    } else if (lowerCommand.includes('hello') || lowerCommand.includes('hi')) {
+      speak('Hello! I am ARIA, your audio operating system. How can I help you?');
+    } else {
+      speak('Command not recognized. Try saying things like open files, increase volume, or what time is it.');
     }
   };
 
@@ -281,10 +310,11 @@ export const AudioOS = () => {
   };
 
   const disconnect = () => {
-    if (wsRef.current) {
-      wsRef.current.close();
+    stopListening();
+    setIsConnected(false);
+    if (speechSynthesisRef.current) {
+      speechSynthesisRef.current.cancel();
     }
-    stopAudioRecording();
   };
 
   return (
