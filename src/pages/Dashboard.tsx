@@ -6,10 +6,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMockAuth } from "@/hooks/useMockAuth";
 import { useProjectPresence } from "@/hooks/useProjectPresence";
 import PresenceIndicator from "@/components/PresenceIndicator";
 import CollaborationCalendar from "@/components/CollaborationCalendar";
+import OntologyTemplateManager from "@/components/OntologyTemplateManager";
+import SemanticArchitectureDesigner from "@/components/SemanticArchitectureDesigner";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -228,188 +231,241 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
-        <div className="grid gap-6">
-          {/* Header with actions */}
-          <div className="flex items-center justify-between">
-            <div className="space-y-2">
-              <h2 className="text-3xl font-bold">Your Projects</h2>
-              <p className="text-muted-foreground">
-                Collaborate with developers worldwide in real-time
-              </p>
-            </div>
-            <div className="flex gap-2">
-              {selectedProject && (
-                <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
-                  <DialogTrigger asChild>
-                    <Button className="bg-gradient-primary hover:opacity-90">
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      Invite Collaborator
+        <Tabs defaultValue="overview" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="recent">Recent Projects</TabsTrigger>
+            <TabsTrigger value="calendar">Calendar</TabsTrigger>
+            <TabsTrigger value="templates">Ontology Templates</TabsTrigger>
+            <TabsTrigger value="architecture">Architecture Designer</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview">
+            <div className="grid gap-6">
+              {/* Header with actions */}
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <h2 className="text-3xl font-bold">Your Projects</h2>
+                  <p className="text-muted-foreground">
+                    Collaborate with developers worldwide in real-time
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  {selectedProject && (
+                    <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
+                      <DialogTrigger asChild>
+                        <Button className="bg-gradient-primary hover:opacity-90">
+                          <UserPlus className="w-4 h-4 mr-2" />
+                          Invite Collaborator
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Invite Collaborator</DialogTitle>
+                          <DialogDescription>
+                            Invite a developer to collaborate on this project in real-time.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor="invite-email">Email</Label>
+                            <Input
+                              id="invite-email"
+                              type="email"
+                              placeholder="developer@example.com"
+                              value={inviteEmail}
+                              onChange={(e) => setInviteEmail(e.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="invite-role">Role</Label>
+                            <Select value={inviteRole} onValueChange={setInviteRole}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="senior_dev">Senior Developer</SelectItem>
+                                <SelectItem value="developer">Developer</SelectItem>
+                                <SelectItem value="viewer">Viewer</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button variant="outline" onClick={() => setIsInviteOpen(false)}>
+                            Cancel
+                          </Button>
+                          <Button onClick={inviteCollaborator}>
+                            Send Invitation
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                  
+                  <Dialog open={isCreateProjectOpen} onOpenChange={setIsCreateProjectOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline">
+                        <Code className="w-4 h-4 mr-2" />
+                        New Project
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Create New Project</DialogTitle>
+                        <DialogDescription>
+                          Start a new collaborative development project.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="project-name">Project Name</Label>
+                          <Input
+                            id="project-name"
+                            placeholder="My Awesome Project"
+                            value={newProjectName}
+                            onChange={(e) => setNewProjectName(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="project-description">Description</Label>
+                          <Input
+                            id="project-description"
+                            placeholder="Brief description of your project"
+                            value={newProjectDescription}
+                            onChange={(e) => setNewProjectDescription(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsCreateProjectOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button onClick={createProject}>
+                          Create Project
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </div>
+
+              {/* Projects Grid */}
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {projects.map((project) => (
+                  <Card 
+                    key={project.id} 
+                    className={`shadow-elevation cursor-pointer transition-all hover:shadow-lg ${
+                      selectedProject === project.id ? 'ring-2 ring-primary' : ''
+                    }`}
+                    onClick={() => joinProject(project.id)}
+                  >
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-1">
+                          <CardTitle className="text-lg">{project.name}</CardTitle>
+                          <CardDescription className="text-sm">
+                            {project.description || 'No description provided'}
+                          </CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {project.is_public && (
+                            <Eye className="w-4 h-4 text-muted-foreground" />
+                          )}
+                          <Share2 className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">
+                            {project.project_members?.length || 0} collaborators
+                          </span>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          variant={selectedProject === project.id ? "default" : "outline"}
+                        >
+                          {selectedProject === project.id ? "Live" : "Join"}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Empty state */}
+              {projects.length === 0 && (
+                <Card className="shadow-elevation">
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <Code className="w-12 h-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No projects yet</h3>
+                    <p className="text-muted-foreground text-center mb-4">
+                      Create your first project to start collaborating with developers worldwide
+                    </p>
+                    <Button onClick={() => setIsCreateProjectOpen(true)}>
+                      Create Your First Project
                     </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Invite Collaborator</DialogTitle>
-                      <DialogDescription>
-                        Invite a developer to collaborate on this project in real-time.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="invite-email">Email</Label>
-                        <Input
-                          id="invite-email"
-                          type="email"
-                          placeholder="developer@example.com"
-                          value={inviteEmail}
-                          onChange={(e) => setInviteEmail(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="invite-role">Role</Label>
-                        <Select value={inviteRole} onValueChange={setInviteRole}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="senior_dev">Senior Developer</SelectItem>
-                            <SelectItem value="developer">Developer</SelectItem>
-                            <SelectItem value="viewer">Viewer</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button variant="outline" onClick={() => setIsInviteOpen(false)}>
-                        Cancel
-                      </Button>
-                      <Button onClick={inviteCollaborator}>
-                        Send Invitation
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                  </CardContent>
+                </Card>
               )}
-              
-              <Dialog open={isCreateProjectOpen} onOpenChange={setIsCreateProjectOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline">
-                    <Code className="w-4 h-4 mr-2" />
-                    New Project
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Create New Project</DialogTitle>
-                    <DialogDescription>
-                      Start a new collaborative development project.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="project-name">Project Name</Label>
-                      <Input
-                        id="project-name"
-                        placeholder="My Awesome Project"
-                        value={newProjectName}
-                        onChange={(e) => setNewProjectName(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="project-description">Description</Label>
-                      <Input
-                        id="project-description"
-                        placeholder="Brief description of your project"
-                        value={newProjectDescription}
-                        onChange={(e) => setNewProjectDescription(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsCreateProjectOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={createProject}>
-                      Create Project
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
             </div>
-          </div>
+          </TabsContent>
 
-          {/* Projects Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map((project) => (
-              <Card 
-                key={project.id} 
-                className={`shadow-elevation cursor-pointer transition-all hover:shadow-lg ${
-                  selectedProject === project.id ? 'ring-2 ring-primary' : ''
-                }`}
-                onClick={() => joinProject(project.id)}
-              >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <CardTitle className="text-lg">{project.name}</CardTitle>
-                      <CardDescription className="text-sm">
-                        {project.description || 'No description provided'}
-                      </CardDescription>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {project.is_public && (
-                        <Eye className="w-4 h-4 text-muted-foreground" />
-                      )}
-                      <Share2 className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">
-                        {project.project_members?.length || 0} collaborators
-                      </span>
-                    </div>
-                    <Button 
-                      size="sm" 
-                      variant={selectedProject === project.id ? "default" : "outline"}
-                    >
-                      {selectedProject === project.id ? "Live" : "Join"}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <TabsContent value="recent">
+            <div className="space-y-4">
+              <h3 className="text-xl font-semibold">Recent Activity</h3>
+              <div className="grid gap-4">
+                {projects.slice(0, 5).map((project) => (
+                  <Card key={project.id} className="shadow-elevation">
+                    <CardContent className="flex items-center justify-between p-4">
+                      <div className="flex items-center gap-3">
+                        <Code className="w-5 h-5 text-primary" />
+                        <div>
+                          <p className="font-medium">{project.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Updated {new Date(project.updated_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <Button size="sm" variant="outline">Open</Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </TabsContent>
 
-          {/* Calendar Section - Only show when project is selected */}
-          {selectedProject && (
-            <div className="mt-8">
+          <TabsContent value="calendar">
+            {selectedProject ? (
               <CollaborationCalendar 
                 selectedProject={selectedProject}
                 currentUserId={user?.id || ''}
                 projectMembers={projectMembers}
               />
-            </div>
-          )}
+            ) : (
+              <Card className="shadow-elevation">
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <Calendar className="w-12 h-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Select a Project</h3>
+                  <p className="text-muted-foreground text-center">
+                    Choose a project from the Overview tab to view its calendar
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
 
-          {/* Empty state */}
-          {projects.length === 0 && (
-            <Card className="shadow-elevation">
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Code className="w-12 h-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No projects yet</h3>
-                <p className="text-muted-foreground text-center mb-4">
-                  Create your first project to start collaborating with developers worldwide
-                </p>
-                <Button onClick={() => setIsCreateProjectOpen(true)}>
-                  Create Your First Project
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+          <TabsContent value="templates">
+            <OntologyTemplateManager />
+          </TabsContent>
+
+          <TabsContent value="architecture">
+            <SemanticArchitectureDesigner />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
